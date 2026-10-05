@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Classeur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Proposition B - le classeur. Reprend la charte des classeurs Excel Fundcraft :
+   onglets, contenu en B2, bandeau de bloc #2F4858, en-têtes #218E8E, résultat clé
+   sur lime, saisie sur crème, sources en gris, filet bas de ligne #E0E0E0.
+   Ni quadrillage, ni volet figé. */
+:root {
+  --bg: #FFFFFF;
+  --ink: #1A2027;
+  --muted: #5A6B72;
+  --rule: #E0E0E0;
+  --band: #2F4858;
+  --band-ink: #FFFFFF;
+  --head: #218E8E;
+  --head-ink: #FFFFFF;
+  --link: #218E8E;
+  --lime: #D9F785;
+  --on-lime: #1A2027;
+  --cream: #FFF8F2;
+  --alt: #EBFCF9;
+  --tab: #EEF2F3;
+  --tab-ink: #2F4858;
+  --font: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151B1F; --ink: #E4EAEC; --muted: #9AA8AE; --rule: #2C363C; --band: #2F4858; --band-ink: #FFFFFF;
+    --head: #1D7272; --head-ink: #FFFFFF; --link: #5CC3C3; --cream: #2A2520; --alt: #182529;
+    --tab: #1D2529; --tab-ink: #C9D6DC; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151B1F; --ink: #E4EAEC; --muted: #9AA8AE; --rule: #2C363C; --band: #2F4858; --band-ink: #FFFFFF;
+  --head: #1D7272; --head-ink: #FFFFFF; --link: #5CC3C3; --cream: #2A2520; --alt: #182529;
+  --tab: #1D2529; --tab-ink: #C9D6DC; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 9pt; line-height: 1.4; }
+[hidden] { display: none !important; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+a { color: var(--link); }
+
+/* colonne A étroite, contenu en B2 */
+.wb { max-width: 1320px; padding-inline: 24px; padding-block: 18px 56px; }
+.b2 h1 { margin: 0; font-size: 12pt; font-weight: 700; }
+.b2 .sub { margin: 1px 0 0; color: var(--muted); }
+
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; margin: 12px 0 8px; }
+.ctl label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.in { background: var(--cream); color: var(--ink); border: 1px solid var(--rule); border-radius: 0; padding: 1px 4px; }
+input.in.num { width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
+.btn { background: transparent; border: 1px solid var(--rule); color: var(--ink); padding: 2px 10px; cursor: pointer; border-radius: 0; }
+.btn:hover { border-color: var(--muted); }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 2px solid var(--band); }
+.tab { background: var(--tab); color: var(--tab-ink); border: 0; border-radius: 0; padding: 4px 14px; cursor: pointer; }
+.tab:hover { text-decoration: underline; }
+.tab[aria-selected="true"] { background: var(--band); color: var(--band-ink); font-weight: 700; text-decoration: none; }
+
+.band { background: var(--band); color: var(--band-ink); font-weight: 700; padding: 3px 8px; margin-top: 16px; }
+.band .hint { font-weight: 400; opacity: .8; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th { background: var(--head); color: var(--head-ink); font-weight: 700; text-align: left; padding: 3px 8px; white-space: nowrap; vertical-align: bottom; }
+td { padding: 3px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr.z > td { background: var(--alt); }
+tr.grp > td { font-weight: 700; background: var(--alt); }
+.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nw { white-space: nowrap; }
+.src { color: var(--muted); }
+.cur { font-weight: 700; }
+table td.key { background: var(--lime); color: var(--on-lime); font-weight: 700; }
+table td.st-DEP, span.st-DEP { background: var(--lime); color: var(--on-lime); font-weight: 700; }
+span.st-DEP { padding: 0 4px; }
+.st-SURV { font-weight: 700; }
+.st-MAN { color: var(--muted); font-style: italic; }
+.st-NA { color: var(--muted); }
+.lnk { background: none; border: 0; padding: 0; color: var(--link); text-decoration: underline; cursor: pointer; text-align: left; }
+td > .lnk[data-ind] { min-width: 150px; }
+tr.sel > td { box-shadow: inset 0 -1px 0 var(--link), inset 0 1px 0 var(--link); }
+
+.kpi th, .kpi td { text-align: center; }
+.kpi td { font-size: 12pt; padding-block: 5px; font-variant-numeric: tabular-nums; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 0 24px; }
+.grid2 > div { min-width: 0; }
+.notes { margin: 6px 0 0; padding-left: 16px; color: var(--muted); max-width: 110ch; }
+.notes li { margin-bottom: 2px; }
+p.src { margin: 6px 0 0; max-width: 110ch; }
+.foot { margin-top: 28px; color: var(--muted); }
+
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .wb { padding-inline: 16px; } .tab { padding: 4px 9px; } }
+@page { size: A4 landscape; margin: 10mm; }
+@media print {
+  .ctl, .tabs { display: none !important; }
+  .scroll { overflow: visible; }
+  .band, th, td.key, .st-DEP { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="wb">
+  <div class="b2">
+    <h1>Risk Studio</h1>
+    <p class="sub" id="sub"></p>
+  </div>
+  <div class="ctl">
+    <label for="arrete">Arrêté</label><select id="arrete" class="in"></select>
+    <span id="ctlFonds"><label for="fonds">Fonds</label> <select id="fonds" class="in"></select></span>
+    <button type="button" class="btn" id="theme">Thème&nbsp;: automatique</button>
+  </div>
+  <div class="tabs" role="tablist" id="tabs" aria-label="Onglets"></div>
+  <div id="sheet" role="tabpanel"></div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>/* Risk Studio - socle commun aux trois propositions d'interface.
+   Données de démonstration (valeurs fictives) et moteur de calcul : statuts,
+   tendances, marges, scénarios de liquidité. Les trois interfaces lisent ce
+   même bloc, la comparaison porte donc sur l'interface seule.
+   Modifier ce fichier puis lancer build.py pour le recopier dans les pages. */
+(function () {
+"use strict";
+
+const DATA = {
+  meta: {
+    entite: "Fundcraft France",
+    aujourdhui: "2026-10-05",
+    produit: "05/10/2026 08:12",
+    arretes: ["2026-06-30", "2026-07-31", "2026-08-31", "2026-09-30"]
+  },
+
+  domaines: [
+    { id: "LIQ", nom: "Liquidité" },
+    { id: "VAL", nom: "Valorisation" },
+    { id: "CON", nom: "Concentration" },
+    { id: "LEV", nom: "Levier" },
+    { id: "MKT", nom: "Marché et change" },
+    { id: "OPS", nom: "Opérationnel" },
+    { id: "REG", nom: "Réglementaire" }
+  ],
+
+  fonds: [
+    { id: "AIR", nom: "AirFund Conviction Value Capital", court: "AirFund CVC",
+      nature: "Fonds de fonds de private equity, evergreen ouvert",
+      liquidite: "Rachats périodiques plafonnés par une gate ; préavis à confirmer",
+      freq: "Mensuelle", devise: "EUR", encours: 142.6, dateVl: "2026-08-31" },
+    { id: "ALE", nom: "Aletheon Growth III", court: "Aletheon III",
+      nature: "Fonds fermé, co-investissements aux côtés de Partech, en direct ou via SPV",
+      liquidite: "Aucun rachat ; appels de capitaux et ligne de crédit relais",
+      freq: "Trimestrielle", devise: "EUR", encours: 118.3, dateVl: "2026-06-30" },
+    { id: "OPN", nom: "FPS Openstone Infraworld", court: "Openstone",
+      nature: "Fonds de fonds d'infrastructure semi-liquide, evergreen : 2 fonds cibles ouverts, 2 fermés",
+      liquidite: "Rachats périodiques plafonnés par une gate ; préavis à confirmer",
+      freq: "Mensuelle", devise: "EUR", encours: 96.4, dateVl: "2026-08-31" }
+  ],
+
+  /* sens "max" : plafond (alerte quand la valeur atteint al, dépassement au-delà de lim)
+     sens "min" : plancher (alerte quand la valeur descend à al, dépassement sous lim)
+     h : valeurs aux quatre arrêtés, null = donnée non reçue */
+  indicateurs: [
+    { id: "AIR-LIQ-01", f: "AIR", d: "LIQ", lib: "Ratio de couverture de liquidité", type: "KRI", nat: "Appétence interne",
+      def: "(Poche liquide + facilité de crédit disponible) / (rachats notifiés + appels des fonds cibles à 3 mois)",
+      u: "x", sens: "min", al: 1.5, lim: 1.0, h: [1.92, 1.71, 1.58, 1.35],
+      src: "Suivi de trésorerie, registre de l'agent de transfert", ref: "Orientations ESMA34-39-897 (2019)",
+      com: "Baisse continue sur le trimestre : hausse des rachats notifiés et appel attendu sur le premier fonds cible." },
+    { id: "AIR-LIQ-02", f: "AIR", d: "LIQ", lib: "Poche liquide", type: "Limite", nat: "Prospectus",
+      def: "(Trésorerie + fonds monétaires) / VL",
+      u: "%", sens: "min", al: 7, lim: 5, h: [9.4, 8.7, 7.5, 6.6],
+      src: "Comptabilité du fonds", ref: "Prospectus, poche de liquidité ; plancher interne à confirmer",
+      com: "Pré-alerte franchie en septembre. Au rythme actuel, le plancher serait atteint en novembre sans nouvelle souscription.", act: "A5" },
+    { id: "AIR-LIQ-03", f: "AIR", d: "LIQ", lib: "Proximité de la gate", type: "KRI", nat: "Prospectus",
+      def: "Rachats nets de la fenêtre / seuil de gate",
+      u: "%", sens: "max", al: 50, lim: 80, h: [22, 35, 38, 41],
+      src: "Registre de l'agent de transfert", ref: "Prospectus, plafonnement des rachats", com: "" },
+    { id: "AIR-LIQ-04", f: "AIR", d: "LIQ", lib: "Engagements non appelés / VL", type: "KRI", nat: "Appétence interne",
+      def: "Engagements non appelés envers les fonds cibles / VL",
+      u: "%", sens: "max", al: 50, lim: 70, h: [41, 40, 39, 38],
+      src: "Suivi des engagements", ref: "Pratique de marché (surengagement)", com: "" },
+    { id: "AIR-VAL-01", f: "AIR", d: "VAL", lib: "Part de la VL en valorisation estimée", type: "KRI", nat: "Appétence interne",
+      def: "Part de la VL reposant sur des VL de fonds cibles non définitives",
+      u: "%", sens: "max", al: 70, lim: 90, h: [58, 66, 61, 64],
+      src: "Rapports des gérants des fonds cibles", ref: "AIFMD art. 19 ; Règlement délégué (UE) 231/2013, art. 67 à 74", com: "" },
+    { id: "AIR-VAL-02", f: "AIR", d: "VAL", lib: "Ancienneté des VL définitives", type: "KRI", nat: "Appétence interne",
+      def: "Ancienneté moyenne pondérée des dernières VL définitives des fonds cibles, en jours",
+      u: "j", sens: "max", al: 120, lim: 180, h: [96, 121, 79, 123],
+      src: "Rapports des gérants des fonds cibles", ref: "AIFMD art. 19",
+      com: "VL définitives du deuxième trimestre non reçues pour le second fonds cible.", act: "A7" },
+    { id: "AIR-VAL-03", f: "AIR", d: "VAL", lib: "Écart VL estimée / VL définitive", type: "KRI", nat: "Appétence interne",
+      def: "Moyenne des écarts absolus sur les 4 dernières observations",
+      u: "pb", sens: "max", al: 50, lim: 100, h: [38, 40, 44, 42],
+      src: "Suivi des VL estimées et définitives", ref: "Règlement délégué (UE) 231/2013, art. 67 à 74", com: "" },
+    { id: "AIR-CON-01", f: "AIR", d: "CON", lib: "Premier fonds cible", type: "Limite", nat: "Prospectus",
+      def: "Exposition au premier fonds cible / VL",
+      u: "%", sens: "max", al: 65, lim: 75, h: [58, 59, 61, 61],
+      src: "Inventaire", ref: "Prospectus, à confirmer", com: "Concentration structurelle : architecture à deux fonds cibles." },
+    { id: "AIR-CON-02", f: "AIR", d: "CON", lib: "Concentration du passif, 5 premiers porteurs", type: "KRI", nat: "Appétence interne",
+      def: "Part des 5 premiers porteurs dans la VL",
+      u: "%", sens: "max", al: 40, lim: 60, h: [37, 38, 38, 39],
+      src: "Registre des porteurs", ref: "Orientations ESMA34-39-897 (2019)", com: "" },
+    { id: "AIR-LEV-01", f: "AIR", d: "LEV", lib: "Levier, méthode de l'engagement", type: "Limite", nat: "Réglementaire",
+      def: "Exposition selon la méthode de l'engagement / VL",
+      u: "x", sens: "max", al: 1.3, lim: 1.5, h: [1.02, 1.03, 1.02, 1.02],
+      src: "Calcul Annex IV", ref: "Règlement délégué (UE) 231/2013, art. 8", com: "Limite interne, à rapprocher du levier déclaré dans l'Annex IV." },
+    { id: "AIR-MKT-01", f: "AIR", d: "MKT", lib: "Écart de couverture de change, part couverte USD", type: "Limite", nat: "Prospectus",
+      def: "Valeur absolue de (ratio de couverture de la part couverte - 100 %), maximum du mois",
+      u: "%", sens: "max", al: 3, lim: 5, h: [2.1, 2.8, 3.9, 5.6],
+      src: "Suivi de couverture, confirmations de la contrepartie", ref: "Prospectus, politique de couverture de change",
+      com: "Hausse de la VL des fonds cibles en USD sans réajustement du notionnel des contrats à terme.", act: "A1" },
+    { id: "AIR-OPS-01", f: "AIR", d: "OPS", lib: "Écarts de rapprochement significatifs ouverts", type: "KRI", nat: "Appétence interne",
+      def: "Nombre d'écarts de rapprochement au-delà du seuil de matérialité non résolus",
+      u: "nb", sens: "max", al: 1, lim: 3, h: [0, 1, 0, 0],
+      src: "Rapprochements dépositaire et valorisateur", ref: "Règlement délégué (UE) 231/2013, art. 13", com: "" },
+    { id: "AIR-REG-01", f: "AIR", d: "REG", lib: "Ancienneté du dernier test de résistance de liquidité", type: "KRI", nat: "Réglementaire",
+      def: "Jours écoulés depuis le dernier LST/MST validé",
+      u: "j", sens: "max", al: 100, lim: 190, h: [0, 31, 62, 92],
+      src: "Classeurs LST/MST", ref: "Orientations ESMA34-39-897 : au moins annuel, trimestriel recommandé", com: "" },
+
+    { id: "ALE-LIQ-01", f: "ALE", d: "LIQ", lib: "Couverture des décaissements à 12 mois", type: "KRI", nat: "Appétence interne",
+      def: "(Trésorerie + appels de capitaux programmés + ligne relais disponible) / décaissements prévus à 12 mois",
+      u: "x", sens: "min", al: 1.2, lim: 1.0, h: [1.31, 1.27, 1.22, 1.17],
+      src: "Plan de trésorerie, calendrier d'investissement", ref: "AIFMD art. 16 ; pratique de marché",
+      com: "La marge repose sur la ligne relais : sans elle, la couverture tombe sous 1,00x." },
+    { id: "ALE-LIQ-02", f: "ALE", d: "LIQ", lib: "Défaut des investisseurs sur appels de capitaux", type: "KRI", nat: "Règlement du fonds",
+      def: "Montants appelés non réglés à 10 jours ouvrés / montants appelés",
+      u: "%", sens: "max", al: 1, lim: 3, h: [0, 0, 0, 0],
+      src: "Suivi des appels de capitaux", ref: "Règlement du fonds, clause de défaut", com: "" },
+    { id: "ALE-VAL-01", f: "ALE", d: "VAL", lib: "Part de la VL valorisée sur un tour de plus de 12 mois", type: "KRI", nat: "Appétence interne",
+      def: "Participations valorisées sur un dernier tour de financement de plus de 12 mois / VL",
+      u: "%", sens: "max", al: 30, lim: 50, h: [31, 31, 31, 38],
+      src: "Dossiers de valorisation trimestriels", ref: "Lignes directrices IPEV (2022) ; AIFMD art. 19",
+      com: "Risque de valorisation obsolète, accentué par la rareté des tours de financement." },
+    { id: "ALE-VAL-02", f: "ALE", d: "VAL", lib: "Ancienneté de la dernière VL", type: "KRI", nat: "Appétence interne",
+      def: "Jours écoulés depuis la date de la dernière VL validée",
+      u: "j", sens: "max", al: 120, lim: 180, h: [91, 31, 62, 92],
+      src: "Valorisateur", ref: "Règlement du fonds", com: "" },
+    { id: "ALE-CON-01", f: "ALE", d: "CON", lib: "Première participation", type: "Limite", nat: "Règlement du fonds",
+      def: "Première participation, directe ou via SPV en transparence / engagements totaux",
+      u: "%", sens: "max", al: 15, lim: 20, h: [12.4, 12.4, 12.4, 13.1],
+      src: "Inventaire en transparence", ref: "Règlement du fonds, ratio d'emprise à confirmer", com: "" },
+    { id: "ALE-CON-02", f: "ALE", d: "CON", lib: "Cinq premières participations", type: "KRI", nat: "Appétence interne",
+      def: "Cinq premières participations en transparence / VL",
+      u: "%", sens: "max", al: 55, lim: null, h: [52, 52, 52, 57],
+      src: "Inventaire en transparence", ref: "Pratique de marché", com: "Pas de limite contractuelle : seuil d'alerte interne uniquement." },
+    { id: "ALE-LEV-01", f: "ALE", d: "LEV", lib: "Utilisation de la ligne de crédit relais", type: "Limite", nat: "Règlement du fonds",
+      def: "Encours tiré / montant de la ligne",
+      u: "%", sens: "max", al: 75, lim: 100, h: [48, 61, 61, 72],
+      src: "Relevés de la banque", ref: "Convention de crédit", com: "" },
+    { id: "ALE-LEV-02", f: "ALE", d: "LEV", lib: "Ancienneté du plus ancien tirage", type: "Limite", nat: "Règlement du fonds",
+      def: "Jours écoulés depuis le plus ancien tirage non remboursé",
+      u: "j", sens: "max", al: 150, lim: 180, h: [79, 110, 141, 171],
+      src: "Relevés de la banque", ref: "Règlement du fonds et convention de crédit, plafond à confirmer",
+      com: "Plafond de 180 jours atteint le 09/10/2026. Avec un préavis d'appel de 10 jours ouvrés, un appel seul ne suffit plus à rembourser à temps.", act: "A4" },
+    { id: "ALE-OPS-01", f: "ALE", d: "OPS", lib: "Délai de production de la VL trimestrielle", type: "KRI", nat: "Appétence interne",
+      def: "Jours calendaires entre la date de VL et sa validation",
+      u: "j", sens: "max", al: 60, lim: 90, h: [55, 48, 48, 48],
+      src: "Valorisateur", ref: "Procédure de valorisation", com: "" },
+    { id: "ALE-OPS-02", f: "ALE", d: "OPS", lib: "Rapports trimestriels des SPV reçus", type: "KRI", nat: "Appétence interne",
+      def: "Rapports reçus / SPV en portefeuille",
+      u: "%", sens: "min", al: 95, lim: 80, h: [100, 100, 88, null],
+      src: "Administrateur des SPV", ref: "Procédure de valorisation",
+      com: "Rapports du deuxième trimestre manquants pour 2 SPV sur 8 ; donnée de septembre non transmise.", act: "A3" },
+    { id: "ALE-REG-01", f: "ALE", d: "REG", lib: "Dépôts réglementaires hors délai, 12 mois glissants", type: "KRI", nat: "Réglementaire",
+      def: "Nombre de dépôts réglementaires effectués après l'échéance",
+      u: "nb", sens: "max", al: 1, lim: 2, h: [0, 0, 0, 0],
+      src: "Échéancier réglementaire", ref: "Règlement délégué (UE) 231/2013, art. 110", com: "" },
+
+    { id: "OPN-LIQ-01", f: "OPN", d: "LIQ", lib: "Ratio de couverture de liquidité", type: "KRI", nat: "Appétence interne",
+      def: "(Poche liquide + rachats obtenables des fonds cibles ouverts dans la fenêtre) / (rachats notifiés + appels des fonds cibles fermés à 3 mois)",
+      u: "x", sens: "min", al: 1.5, lim: 1.0, h: [1.41, 1.22, 1.08, 0.93],
+      src: "Suivi de trésorerie, registre de l'agent de transfert", ref: "Orientations ESMA34-39-897 (2019)",
+      com: "Plancher franchi en septembre : rachats notifiés en hausse, appel attendu sur un fonds cible fermé, aucune facilité de crédit.", act: "A2" },
+    { id: "OPN-LIQ-02", f: "OPN", d: "LIQ", lib: "Part de la VL investie en fonds cibles fermés", type: "KRI", nat: "Appétence interne",
+      def: "Exposition aux fonds cibles fermés / VL",
+      u: "%", sens: "max", al: 45, lim: 55, h: [43, 44, 46, 47],
+      src: "Inventaire", ref: "Prospectus, allocation cible", com: "Les fonds cibles fermés ne contribuent pas à la liquidité du Fonds." },
+    { id: "OPN-LIQ-03", f: "OPN", d: "LIQ", lib: "Proximité de la gate", type: "KRI", nat: "Prospectus",
+      def: "Rachats nets de la fenêtre / seuil de gate",
+      u: "%", sens: "max", al: 50, lim: 80, h: [31, 44, 52, 63],
+      src: "Registre de l'agent de transfert", ref: "Prospectus, plafonnement des rachats", com: "" },
+    { id: "OPN-LIQ-04", f: "OPN", d: "LIQ", lib: "Écart de préavis avec les fonds cibles ouverts", type: "KRI", nat: "Structure du fonds",
+      def: "Préavis de rachat le plus long des fonds cibles ouverts - préavis du Fonds, en jours",
+      u: "j", sens: "max", al: 0, lim: 30, h: [15, 15, 15, 15],
+      src: "Documentation des fonds cibles", ref: "Orientations ESMA sur les outils de gestion de la liquidité (2025)",
+      com: "Asymétrie structurelle : le Fonds ne peut pas obtenir la liquidité des fonds cibles ouverts dans sa propre fenêtre de rachat." },
+    { id: "OPN-VAL-01", f: "OPN", d: "VAL", lib: "Part de la VL en valorisation estimée", type: "KRI", nat: "Appétence interne",
+      def: "Part de la VL reposant sur des VL de fonds cibles non définitives",
+      u: "%", sens: "max", al: 70, lim: 90, h: [72, 75, 71, 78],
+      src: "Rapports des gérants des fonds cibles", ref: "AIFMD art. 19", com: "" },
+    { id: "OPN-VAL-02", f: "OPN", d: "VAL", lib: "Écart VL estimée / VL définitive", type: "KRI", nat: "Appétence interne",
+      def: "Moyenne des écarts absolus sur les 4 dernières observations",
+      u: "pb", sens: "max", al: 50, lim: 100, h: [27, 29, 30, 31],
+      src: "Suivi des VL estimées et définitives", ref: "Règlement délégué (UE) 231/2013, art. 67 à 74", com: "" },
+    { id: "OPN-CON-01", f: "OPN", d: "CON", lib: "Premier fonds cible", type: "Limite", nat: "Prospectus",
+      def: "Exposition au premier fonds cible / VL",
+      u: "%", sens: "max", al: 35, lim: 40, h: [32, 33, 33, 34],
+      src: "Inventaire", ref: "Prospectus, à confirmer", com: "" },
+    { id: "OPN-CON-02", f: "OPN", d: "CON", lib: "Concentration du passif, 5 premiers porteurs", type: "KRI", nat: "Appétence interne",
+      def: "Part des 5 premiers porteurs dans la VL",
+      u: "%", sens: "max", al: 40, lim: 60, h: [36, 37, 37, 38],
+      src: "Registre des porteurs", ref: "Orientations ESMA34-39-897 (2019)", com: "" },
+    { id: "OPN-LEV-01", f: "OPN", d: "LEV", lib: "Levier, méthode de l'engagement", type: "Limite", nat: "Réglementaire",
+      def: "Exposition selon la méthode de l'engagement / VL",
+      u: "x", sens: "max", al: 1.3, lim: 1.5, h: [1.0, 1.0, 1.0, 1.0],
+      src: "Calcul Annex IV", ref: "Règlement délégué (UE) 231/2013, art. 8", com: "" },
+    { id: "OPN-MKT-01", f: "OPN", d: "MKT", lib: "Exposition hors EUR non couverte", type: "KRI", nat: "Appétence interne",
+      def: "Exposition en devises hors EUR non couverte / VL",
+      u: "%", sens: "max", al: 15, lim: 25, h: [11, 11, 12, 12],
+      src: "Inventaire en transparence", ref: "Politique de couverture de change", com: "" },
+    { id: "OPN-OPS-01", f: "OPN", d: "OPS", lib: "Incidents opérationnels ouverts", type: "KRI", nat: "Appétence interne",
+      def: "Nombre d'incidents non clôturés au registre",
+      u: "nb", sens: "max", al: 2, lim: 5, h: [1, 1, 2, 2],
+      src: "Registre des incidents", ref: "Règlement délégué (UE) 231/2013, art. 13", com: "" },
+    { id: "OPN-REG-01", f: "OPN", d: "REG", lib: "Ancienneté du dernier test de résistance de liquidité", type: "KRI", nat: "Réglementaire",
+      def: "Jours écoulés depuis le dernier LST/MST validé",
+      u: "j", sens: "max", al: 100, lim: 190, h: [85, 116, 147, 177],
+      src: "Classeurs LST/MST", ref: "Orientations ESMA34-39-897 : au moins annuel, trimestriel recommandé",
+      com: "Dernier LST/MST validé le 06/04/2026 ; exercice du troisième trimestre non lancé.", act: "A6" }
+  ],
+
+  actions: [
+    { id: "A1", f: "AIR", ind: "AIR-MKT-01", prio: "Haute", ech: "2026-10-07", resp: "Gestion et Risques", statut: "Ouverte",
+      objet: "Qualifier le dépassement (actif ou passif), réajuster le notionnel de couverture et inscrire au registre des dépassements" },
+    { id: "A2", f: "OPN", ind: "OPN-LIQ-01", prio: "Haute", ech: "2026-10-06", resp: "Risques", statut: "Ouverte",
+      objet: "Informer la Direction générale et présenter un plan de rétablissement : calendrier des appels, cession secondaire, facilité de crédit, activation éventuelle de la gate" },
+    { id: "A4", f: "ALE", ind: "ALE-LEV-02", prio: "Haute", ech: "2026-10-05", resp: "Gestion", statut: "Ouverte",
+      objet: "Vérifier qu'un appel de capitaux a été émis ; à défaut, obtenir de la banque une prorogation du tirage au-delà du 09/10/2026" },
+    { id: "A3", f: "ALE", ind: "ALE-OPS-02", prio: "Moyenne", ech: "2026-10-09", resp: "Risques et middle office", statut: "Ouverte",
+      objet: "Obtenir de l'administrateur des SPV les rapports manquants et la donnée de septembre" },
+    { id: "A5", f: "AIR", ind: "AIR-LIQ-02", prio: "Moyenne", ech: "2026-10-14", resp: "Gestion", statut: "Ouverte",
+      objet: "Valider avec la gestion un plan de reconstitution de la poche liquide avant la prochaine fenêtre de rachat" },
+    { id: "A8", f: null, pipe: "PG", prio: "Moyenne", ech: "2026-10-14", resp: "Risques", statut: "En cours",
+      objet: "Comité des risques : valider les paramètres de liquidité du Nourricier Partners Group (gate, préavis, poche liquide)" },
+    { id: "A7", f: "AIR", ind: "AIR-VAL-02", prio: "Basse", ech: "2026-10-15", resp: "Risques", statut: "Ouverte",
+      objet: "Relancer le gérant du second fonds cible pour les VL définitives du deuxième trimestre" },
+    { id: "A6", f: "OPN", ind: "OPN-REG-01", prio: "Moyenne", ech: "2026-10-20", resp: "Risques", statut: "Ouverte",
+      objet: "Lancer le LST/MST du troisième trimestre sur données au 30/09/2026" }
+  ],
+
+  echeances: [
+    { date: "2026-10-09", f: ["ALE"], objet: "Remboursement du plus ancien tirage de la ligne relais", ref: "Convention de crédit", statut: "À risque" },
+    { date: "2026-10-14", f: ["AIR", "ALE", "OPN"], objet: "Comité des risques du troisième trimestre", ref: "Procédure interne", statut: "En préparation" },
+    { date: "2026-10-15", f: ["AIR", "OPN"], objet: "Mise à jour trimestrielle EMT et EET", ref: "Standard FinDatEx (pratique de marché)", statut: "À venir" },
+    { date: "2026-10-20", f: ["OPN"], objet: "LST/MST du troisième trimestre", ref: "Orientations ESMA34-39-897 (2019)", statut: "Non lancé" },
+    { date: "2026-10-30", f: ["ALE"], objet: "Annex IV AIFMD, troisième trimestre", ref: "Règlement délégué (UE) 231/2013, art. 110", statut: "À venir" },
+    { date: "2026-11-14", f: ["AIR", "OPN"], objet: "Annex IV AIFMD, troisième trimestre (fonds de fonds : délai de 15 jours supplémentaires)", ref: "Règlement délégué (UE) 231/2013, art. 110", statut: "À venir" },
+    { date: "2026-12-15", f: ["AIR"], objet: "Réexamen annuel du KID PRIIPs", ref: "Règlement délégué (UE) 2017/653, art. 15", statut: "À venir" },
+    { date: "2026-12-31", f: ["AIR", "ALE", "OPN"], objet: "Réexamen annuel de la politique de gestion des risques", ref: "Règlement délégué (UE) 231/2013, art. 41", statut: "À venir" }
+  ],
+
+  pipeline: [
+    { id: "PG", nom: "Partners Group Private Equity Opportunities ELTIF Feeder", nature: "Onboarding",
+      etapes: ["Réception", "Revue documentaire", "Initial Risk Profile", "Comité des risques", "Paramétrage des limites", "Lancement"], cur: 3,
+      prochaine: "Validation des paramètres de liquidité", ech: "2026-10-14",
+      point: "Agrément ELTIF en instruction ; préavis du Nourricier à aligner sur celui du Maître.",
+      url: "https://claude.ai/artifact/WJQcKuqhLSSDEsTBCBPZhi" },
+    { id: "OTQ", nom: "Otentiq Private Equity X SLP", nature: "Onboarding",
+      etapes: ["Réception", "Revue documentaire", "Initial Risk Profile", "Comité des risques", "Paramétrage des limites", "Lancement"], cur: 1,
+      prochaine: "Initial Risk Profile", ech: "2026-10-23",
+      point: "Structure de SLP : vérifier le régime des appels de capitaux et la clause de défaut." },
+    { id: "ACF", nom: "ACF X Growth Buy-Out Europe", nature: "Initial Risk Profile",
+      etapes: ["Collecte", "Rédaction", "Revue", "Validation"], cur: 1,
+      prochaine: "Revue de l'IRP", ech: "2026-10-21",
+      point: "Track record du gérant à obtenir par millésime." },
+    { id: "ACP", nom: "Access Capital Partners", nature: "Due diligence",
+      etapes: ["Collecte", "Analyse", "Benchmarking Preqin", "Note de due diligence", "Avis"], cur: 2,
+      prochaine: "Note de due diligence", ech: "2026-10-30",
+      point: "Échantillon de comparables Preqin à figer : millésime, stratégie, zone." }
+  ],
+
+  studios: [
+    { nom: "KRI Studio", objet: "Référentiel et suivi des indicateurs clés de risque", etat: "En service", url: "https://claude.ai/artifact/L77zVHUjzfDRBUcSD3FJbF" },
+    { nom: "Risk Limit Studio", objet: "Limites, contrôle avant opération, registre des dépassements", etat: "En service", url: "https://claude.ai/artifact/7mpwx6X9YX3SuMrDTu1VjZ" },
+    { nom: "Annex IV Studio", objet: "Validation et génération XML de l'Annex IV AIFMD", etat: "En développement", url: "https://claude.ai/artifact/7bsZWA9dku9pQEQ7Ct6sot" },
+    { nom: "KID PRIIPs Studio", objet: "SRI, MRM, VEV, scénarios de performance, EPT, EMT et EET", etat: "En développement", url: "" },
+    { nom: "Cash Monitoring Studio", objet: "Trésorerie quotidienne, fonds monétaires, appels et distributions, gate", etat: "En développement", url: "" },
+    { nom: "Annexe SFDR Studio", objet: "Annexes précontractuelles et périodiques SFDR", etat: "En service", url: "https://claude.ai/artifact/Ezw2BDs8sLdhANu8BPdS3z" },
+    { nom: "Operating Memorandum", objet: "Operating Memorandum interactif de FPS Openstone Infraworld", etat: "En service", url: "https://claude.ai/artifact/B3hEgGQeLgP5T8otAj5C9s" },
+    { nom: "Monitoring des closings", objet: "Suivi des closings et des souscriptions", etat: "En service", url: "https://claude.ai/artifact/B1XPvm9B9o9ugjxxiSgxd8" },
+    { nom: "Plan de charge Risque", objet: "Charge de travail de la fonction de gestion des risques", etat: "En service", url: "https://claude.ai/artifact/FFCUwnB1FqyNaRCtfFsG51" }
+  ],
+
+  /* Scénarios de liquidité, calibrés au 30/09/2026.
+     Fonds ouverts : le scénario de base reprend les rachats notifiés, d'où l'égalité
+     entre la couverture de base et le ratio de couverture de liquidité. */
+  liquidite: {
+    AIR: {
+      type: "ouvert",
+      params: [
+        { k: "vl", lib: "Valeur liquidative", v: 142.6, u: "EUR m", src: "VL au 31/08/2026" },
+        { k: "poche", lib: "Poche liquide (trésorerie et fonds monétaires)", v: 6.6, u: "% VL", src: "Comptabilité du fonds" },
+        { k: "obtenable", lib: "Rachats obtenables des fonds cibles dans la fenêtre", v: 0, u: "% VL", src: "Hypothèse : fonds cibles sans rachat" },
+        { k: "credit", lib: "Facilité de crédit disponible", v: 5.0, u: "EUR m", src: "Convention de crédit, à confirmer" },
+        { k: "gate", lib: "Gate par fenêtre de rachat", v: 5, u: "% VL", src: "Prospectus, à confirmer" }
+      ],
+      scen: [
+        { k: "rachats", lib: "Rachats demandés", u: "% VL", v: { base: 3.4, adverse: 6, extreme: 12 }, src: "Base : rachats notifiés ; adverse et extrême : hypothèses" },
+        { k: "appels", lib: "Appels des fonds cibles à 3 mois", u: "% VL", v: { base: 4.1, adverse: 5.0, extreme: 6.5 }, src: "Plan d'engagements ; stress : accélération des appels" }
+      ]
+    },
+    OPN: {
+      type: "ouvert",
+      params: [
+        { k: "vl", lib: "Valeur liquidative", v: 96.4, u: "EUR m", src: "VL au 31/08/2026" },
+        { k: "poche", lib: "Poche liquide (trésorerie et fonds monétaires)", v: 4.2, u: "% VL", src: "Comptabilité du fonds" },
+        { k: "obtenable", lib: "Rachats obtenables des fonds cibles ouverts dans la fenêtre", v: 1.3, u: "% VL", src: "Gates et préavis des fonds cibles" },
+        { k: "credit", lib: "Facilité de crédit disponible", v: 0, u: "EUR m", src: "Aucune facilité en place" },
+        { k: "gate", lib: "Gate par fenêtre de rachat", v: 5, u: "% VL", src: "Prospectus, à confirmer" }
+      ],
+      scen: [
+        { k: "rachats", lib: "Rachats demandés", u: "% VL", v: { base: 3.9, adverse: 6, extreme: 10 }, src: "Base : rachats notifiés ; adverse et extrême : hypothèses" },
+        { k: "appels", lib: "Appels des fonds cibles fermés à 3 mois", u: "% VL", v: { base: 2.0, adverse: 2.5, extreme: 3.0 }, src: "Plan d'engagements ; stress : accélération des appels" }
+      ]
+    },
+    ALE: {
+      type: "ferme",
+      params: [
+        { k: "treso", lib: "Trésorerie disponible", v: 6.2, u: "EUR m", src: "Relevés bancaires au 30/09/2026" },
+        { k: "appels", lib: "Appels de capitaux programmés à 12 mois", v: 24.0, u: "EUR m", src: "Calendrier des appels" },
+        { k: "ligne", lib: "Ligne relais disponible", v: 4.2, u: "EUR m", src: "Relevés de la banque" },
+        { k: "decaiss", lib: "Décaissements prévus à 12 mois", v: 29.5, u: "EUR m", src: "Calendrier d'investissement et frais" }
+      ],
+      scen: [
+        { k: "defaut", lib: "Défaut des investisseurs sur les appels", u: "%", v: { base: 0, adverse: 10, extreme: 25 }, src: "Hypothèses ; aucun défaut observé à ce jour" },
+        { k: "maintien", lib: "Part de la ligne relais maintenue", u: "%", v: { base: 100, adverse: 100, extreme: 0 }, src: "Extrême : non-renouvellement par la banque" }
+      ]
+    }
+  },
+
+  hypothesesLiquidite: [
+    "Le scénario de base reprend les rachats notifiés au 30/09/2026 ; les scénarios adverse et extrême sont calibrés à dire d'expert, faute d'historique de rachats suffisant pour une approche statistique.",
+    "Les ressources comprennent la poche liquide, les rachats obtenables des fonds cibles ouverts dans la fenêtre et la facilité de crédit disponible. Aucune cession secondaire n'est retenue : décote et délai trop incertains.",
+    "La gate est appliquée à son niveau prospectus, à confirmer ; les rachats différés reportent le besoin sur la fenêtre suivante sans l'éteindre.",
+    "Les VL des fonds cibles sont reprises sans retraitement du lissage (desmoothing) : la couverture est surestimée si ces VL sont en retard sur le marché."
+  ],
+
+  references: [
+    { texte: "Directive 2011/61/UE (AIFMD)", niveau: "Directive UE, 2011", objet: "Art. 15 gestion des risques, art. 16 liquidité, art. 19 évaluation, art. 24 reporting" },
+    { texte: "Règlement délégué (UE) 231/2013", niveau: "Règlement UE, 2013", objet: "Art. 38 à 49 risques et liquidité, art. 67 à 74 évaluation, art. 110 Annex IV" },
+    { texte: "Directive (UE) 2024/927 (AIFMD 2)", niveau: "Directive UE, 2024", objet: "Outils de gestion de la liquidité des FIA ouverts ; transposition au 16/04/2026" },
+    { texte: "ESMA34-39-897", niveau: "Orientations ESMA, 2019", objet: "Tests de résistance de liquidité des OPCVM et des FIA" },
+    { texte: "Orientations sur les outils de gestion de la liquidité", niveau: "Orientations ESMA, 2025", objet: "Sélection et calibrage des outils de gestion de la liquidité" },
+    { texte: "Règlement délégué (UE) 2017/653", niveau: "Règlement UE, 2017", objet: "KID PRIIPs, art. 15 réexamen au moins annuel" },
+    { texte: "Lignes directrices IPEV", niveau: "Pratique de marché, 2022", objet: "Évaluation des participations non cotées" }
+  ]
+};
+
+/* ------------------------------------------------------------------ outils */
+
+const STATUTS = {
+  DEP:  { lib: "Dépassement",       court: "Dépassement",  rang: 4 },
+  MAN:  { lib: "Donnée manquante",  court: "Manquant",     rang: 3 },
+  SURV: { lib: "Sous surveillance", court: "Surveillance", rang: 2 },
+  OK:   { lib: "Conforme",          court: "Conforme",     rang: 1 },
+  NA:   { lib: "Non applicable",    court: "n.a.",         rang: 0 }
+};
+const ORDRE_STATUTS = ["DEP", "MAN", "SURV", "OK"];
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+              "septembre", "octobre", "novembre", "décembre"];
+const EPS = 1e-9;
+
+const fondsById = {}; DATA.fonds.forEach(f => { fondsById[f.id] = f; });
+const domById = {}; DATA.domaines.forEach(d => { domById[d.id] = d; });
+const indById = {}; DATA.indicateurs.forEach(i => { indById[i.id] = i; });
+const actById = {}; DATA.actions.forEach(a => { actById[a.id] = a; });
+const pipeById = {}; DATA.pipeline.forEach(p => { pipeById[p.id] = p; });
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+/* typographie française : espace insécable avant : ; ? ! % */
+function fr(s) {
+  return String(s == null ? "" : s).replace(/ ([:;?!%])/g, " $1");
+}
+function t(s) { return esc(fr(s)); }
+
+function nombre(v, dec) {
+  return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
+}
+const DEC = { "%": 1, "x": 2, "pb": 0, "j": 0, "nb": 0, "EUR m": 1, "% VL": 1 };
+function val(v, u) {
+  if (v === null || v === undefined || isNaN(v)) return "n.d.";
+  const d = DEC[u] !== undefined ? DEC[u] : 1;
+  const n = nombre(v, d);
+  if (u === "x") return n + "x";
+  if (u === "nb") return n;
+  if (u === "% VL") return n + " %";
+  return n + " " + u;
+}
+function signe(v, u) {
+  if (v === null || v === undefined || isNaN(v)) return "-";
+  const s = val(Math.abs(v), u);
+  if (Math.abs(v) < EPS) return s;
+  return (v > 0 ? "+" : "-") + s;
+}
+
+function date(iso) { const p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+function dateCourte(iso) { const p = iso.split("-"); return p[2] + "/" + p[1]; }
+function dateLongue(iso) {
+  const p = iso.split("-"); return Number(p[2]) + " " + MOIS[Number(p[1]) - 1] + " " + p[0];
+}
+function moisAnnee(iso) { const p = iso.split("-"); return MOIS[Number(p[1]) - 1] + " " + p[0]; }
+function jours(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 86400000); }
+function delai(iso) {
+  const n = jours(DATA.meta.aujourdhui, iso);
+  if (n < 0) return "en retard de " + (-n) + " j";
+  if (n === 0) return "aujourd'hui";
+  return "dans " + n + " j";
+}
+
+/* ------------------------------------------------------------------ moteur */
+
+function valeur(ind, i) { const v = ind.h[i]; return v === undefined ? null : v; }
+
+function statut(ind, i) {
+  const v = valeur(ind, i);
+  if (v === null) return "MAN";
+  if (ind.sens === "max") {
+    if (ind.lim !== null && v > ind.lim + EPS) return "DEP";
+    if (ind.al !== null && v >= ind.al - EPS) return "SURV";
+    return "OK";
+  }
+  if (ind.lim !== null && v < ind.lim - EPS) return "DEP";
+  if (ind.al !== null && v <= ind.al + EPS) return "SURV";
+  return "OK";
+}
+
+/* marge restante avant la limite, dans l'unité de l'indicateur (négative = dépassement) */
+function marge(ind, i) {
+  const v = valeur(ind, i);
+  if (v === null || ind.lim === null) return null;
+  return ind.sens === "max" ? ind.lim - v : v - ind.lim;
+}
+
+function tendance(ind, i) {
+  if (i === 0) return { code: "nd", lib: "n.d." };
+  const a = valeur(ind, i - 1), b = valeur(ind, i);
+  if (a === null || b === null) return { code: "nd", lib: "n.d." };
+  if (Math.abs(b - a) < EPS) return { code: "stable", lib: "Stable" };
+  const hausse = b > a;
+  const degrade = ind.sens === "max" ? hausse : !hausse;
+  return degrade ? { code: "deg", lib: "Dégradation" } : { code: "ame", lib: "Amélioration" };
+}
+
+function pire(codes) {
+  let w = "NA";
+  codes.forEach(c => { if (STATUTS[c].rang > STATUTS[w].rang) w = c; });
+  return w;
+}
+
+function indicateursDe(f, d) {
+  return DATA.indicateurs.filter(x => (!f || x.f === f) && (!d || x.d === d));
+}
+
+function statutDomaine(f, d, i) {
+  const l = indicateursDe(f, d);
+  if (!l.length) return "NA";
+  return pire(l.map(x => statut(x, i)));
+}
+
+function statutFonds(f, i) { return pire(indicateursDe(f).map(x => statut(x, i))); }
+
+function compte(i, perimetre) {
+  const c = { DEP: 0, MAN: 0, SURV: 0, OK: 0, total: 0 };
+  DATA.indicateurs.forEach(x => {
+    if (perimetre && perimetre.indexOf(x.f) < 0) return;
+    c[statut(x, i)] += 1; c.total += 1;
+  });
+  return c;
+}
+
+/* indicateurs hors statut conforme, du plus grave au moins grave */
+function pointsAttention(i, perimetre) {
+  return DATA.indicateurs
+    .filter(x => (!perimetre || perimetre.indexOf(x.f) >= 0) && statut(x, i) !== "OK")
+    .sort((a, b) => STATUTS[statut(b, i)].rang - STATUTS[statut(a, i)].rang
+      || DATA.fonds.indexOf(fondsById[a.f]) - DATA.fonds.indexOf(fondsById[b.f]));
+}
+
+function actionsOuvertes(perimetre) {
+  return DATA.actions
+    .filter(a => !perimetre || !a.f || perimetre.indexOf(a.f) >= 0)
+    .slice().sort((a, b) => a.ech < b.ech ? -1 : a.ech > b.ech ? 1 : 0);
+}
+
+function echeancesDans(nbJours, perimetre) {
+  return DATA.echeances.filter(e => {
+    const n = jours(DATA.meta.aujourdhui, e.date);
+    if (n < 0 || n > nbJours) return false;
+    return !perimetre || e.f.some(x => perimetre.indexOf(x) >= 0);
+  });
+}
+
+/* ------------------------------------------------------------------ liquidité */
+
+const SCENARIOS = [
+  { k: "base", lib: "Base" },
+  { k: "adverse", lib: "Adverse" },
+  { k: "extreme", lib: "Extrême" }
+];
+
+function copieLiquidite(id) { return JSON.parse(JSON.stringify(DATA.liquidite[id])); }
+
+function paramsMap(cfg) { const m = {}; cfg.params.forEach(p => { m[p.k] = Number(p.v) || 0; }); return m; }
+function scenMap(cfg, s) { const m = {}; cfg.scen.forEach(p => { m[p.k] = Number(p.v[s]) || 0; }); return m; }
+
+function liqOuvert(cfg, s) {
+  const p = paramsMap(cfg), q = scenMap(cfg, s);
+  const ressources = p.vl * (p.poche + p.obtenable) / 100 + p.credit;
+  const demande = p.vl * q.rachats / 100;
+  const servis = p.vl * Math.min(q.rachats, p.gate) / 100;
+  const appels = p.vl * q.appels / 100;
+  const besoins = servis + appels;
+  return { ressources, demande, servis, differes: demande - servis, appels, besoins,
+           solde: ressources - besoins, couverture: besoins > 0 ? ressources / besoins : null };
+}
+
+function liqFerme(cfg, s) {
+  const p = paramsMap(cfg), q = scenMap(cfg, s);
+  const encaisses = p.appels * (1 - q.defaut / 100);
+  const ligne = p.ligne * q.maintien / 100;
+  const ressources = p.treso + encaisses + ligne;
+  return { appels: p.appels, defautMontant: p.appels - encaisses, encaisses, treso: p.treso, ligne,
+           ressources, besoins: p.decaiss, solde: ressources - p.decaiss,
+           couverture: p.decaiss > 0 ? ressources / p.decaiss : null };
+}
+
+function liquidite(cfg, s) { return cfg.type === "ouvert" ? liqOuvert(cfg, s) : liqFerme(cfg, s); }
+
+/* reverse stress test : le niveau de choc qui ramène la couverture à 1,00x */
+function reverse(cfg) {
+  const p = paramsMap(cfg);
+  if (cfg.type === "ouvert") {
+    const q = scenMap(cfg, "base");
+    const ressources = p.vl * (p.poche + p.obtenable) / 100 + p.credit;
+    const rmax = p.vl > 0 ? (ressources - p.vl * q.appels / 100) / p.vl * 100 : null;
+    const gateProtege = rmax !== null && rmax >= p.gate;
+    return {
+      type: "ouvert", rmax, gate: p.gate, gateProtege,
+      texte: rmax === null ? "Données insuffisantes." :
+        rmax < 0 ? "Les ressources ne couvrent pas les seuls appels des fonds cibles du scénario de base, avant tout rachat." :
+        "Les ressources couvrent au plus " + val(rmax, "% VL") + " de rachats par fenêtre, après les appels du scénario de base. " +
+        (gateProtege ? "La gate (" + val(p.gate, "% VL") + ") s'applique avant l'épuisement des ressources." :
+                       "Ce niveau est inférieur à la gate (" + val(p.gate, "% VL") + ") : le Fonds ne peut pas servir une fenêtre pleine sans cession ni financement.")
+    };
+  }
+  const dmax = p.appels > 0 ? (1 - (p.decaiss - p.treso - p.ligne) / p.appels) * 100 : null;
+  const dmaxSans = p.appels > 0 ? (1 - (p.decaiss - p.treso) / p.appels) * 100 : null;
+  const borne = x => x === null ? "n.d." : x <= 0 ? "aucun défaut" : x >= 100 ? "plus de 100 %" : val(x, "%");
+  return {
+    type: "ferme", dmax, dmaxSans,
+    texte: "Défaut des investisseurs supportable avant que la couverture ne tombe sous 1,00x : " + borne(dmax) +
+      " avec la ligne relais, " + borne(dmaxSans) + " sans la ligne relais."
+  };
+}
+
+/* ------------------------------------------------------------------ thème */
+
+function theme(btn) {
+  const libs = { auto: "automatique", light: "clair", dark: "sombre" };
+  let cur = "auto";
+  try { const s = localStorage.getItem("riskstudio_theme"); if (s === "light" || s === "dark") cur = s; } catch (e) {}
+  function apply() {
+    if (cur === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", cur);
+    if (btn) btn.textContent = "Thème : " + libs[cur];
+  }
+  apply();
+  if (btn) btn.addEventListener("click", () => {
+    cur = cur === "auto" ? "light" : cur === "light" ? "dark" : "auto";
+    try { localStorage.setItem("riskstudio_theme", cur); } catch (e) {}
+    apply();
+  });
+}
+
+window.RS = {
+  DATA, STATUTS, ORDRE_STATUTS, SCENARIOS, fondsById, domById, indById, actById, pipeById,
+  esc, fr, t, nombre, val, signe, date, dateCourte, dateLongue, moisAnnee, jours, delai,
+  valeur, statut, marge, tendance, pire, indicateursDe, statutDomaine, statutFonds, compte,
+  pointsAttention, actionsOuvertes, echeancesDans,
+  copieLiquidite, liquidite, reverse, theme
+};
+})();
+</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA;
+const SHEETS = [["dashboard", "Dashboard"], ["fonds", "Fonds"], ["liquidite", "Liquidité"], ["indicateurs", "Indicateurs"],
+                ["echeancier", "Échéancier"], ["pipeline", "Pipeline"], ["studios", "Studios"]];
+const st = { i: D.meta.arretes.length - 1, sheet: "dashboard", fonds: "AIR",
+             filtre: { fonds: "", dom: "", statut: "", type: "" }, sel: null, liq: {} };
+const $ = id => document.getElementById(id);
+const S = (code, long) => '<span class="st-' + code + '">' + R.esc(long ? R.STATUTS[code].lib : R.STATUTS[code].court) + '</span>';
+const tdS = (code, long) => '<td class="nw st-' + code + '">' + R.esc(long ? R.STATUTS[code].lib : R.STATUTS[code].court) + '</td>';
+const seuil = (ind, k) => ind[k] === null ? "-" : R.val(ind[k], ind.u);
+const z = k => k % 2 ? ' class="z"' : '';
+const arr = () => R.date(D.meta.arretes[st.i]);
+const go = (sheet, attrs, label) => '<button type="button" class="lnk" data-go="' + sheet + '"' + (attrs || "") + '>' + label + '</button>';
+const liqCfg = id => st.liq[id] || (st.liq[id] = R.copieLiquidite(id));
+
+/* ------------------------------------------------------------ cadre */
+function cadre() {
+  $("sub").textContent = R.fr("Fundcraft France - situation au " + arr() + " - données de démonstration, valeurs fictives - produit le " + D.meta.produit);
+  $("arrete").innerHTML = D.meta.arretes.map((a, k) => '<option value="' + k + '"' + (k === st.i ? " selected" : "") + '>' + R.date(a) + '</option>').join("");
+  $("fonds").innerHTML = D.fonds.map(f => '<option value="' + f.id + '"' + (f.id === st.fonds ? " selected" : "") + '>' + R.esc(f.nom) + '</option>').join("");
+  $("ctlFonds").hidden = !(st.sheet === "fonds" || st.sheet === "liquidite");
+  $("tabs").innerHTML = SHEETS.map(s => '<button type="button" class="tab" role="tab" id="tab-' + s[0] + '" data-sheet="' + s[0] +
+    '" aria-selected="' + (s[0] === st.sheet) + '">' + s[1] + '</button>').join("");
+  $("foot").textContent = R.fr("Risk Studio, proposition B : le classeur. Même socle de données et de calcul que les propositions A et C.");
+}
+
+/* ------------------------------------------------------------ Dashboard */
+function shDashboard() {
+  const i = st.i, c = R.compte(i), acts = R.actionsOuvertes(), ech = R.echeancesDans(30);
+  const kpi = [["Fonds gérés", D.fonds.length], ["Indicateurs suivis", c.total], ["Dépassements", c.DEP], ["Données manquantes", c.MAN],
+               ["Sous surveillance", c.SURV], ["Actions ouvertes", acts.length], ["dont priorité haute", acts.filter(a => a.prio === "Haute").length],
+               ["Échéances à 30 jours", ech.length]];
+  let h = '<div class="band">Indicateurs clés au ' + arr() + '</div><div class="scroll"><table class="kpi"><thead><tr>' +
+    kpi.map(k => '<th>' + R.esc(k[0]) + '</th>').join("") + '</tr></thead><tbody><tr>' +
+    kpi.map(k => '<td class="key">' + k[1] + '</td>').join("") + '</tr></tbody></table></div>';
+
+  const mx = '<div class="band">Matrice des risques</div><div class="scroll"><table><thead><tr><th>Fonds</th>' +
+    D.domaines.map(d => '<th>' + R.esc(d.nom) + '</th>').join("") + '<th>Ensemble</th></tr></thead><tbody>' +
+    D.fonds.map((f, k) => '<tr' + z(k) + '><td>' + go("fonds", ' data-fonds="' + f.id + '"', R.esc(f.court)) + '</td>' +
+      D.domaines.map(d => tdS(R.statutDomaine(f.id, d.id, i))).join("") + tdS(R.statutFonds(f.id, i)) + '</tr>').join("") +
+    '</tbody></table></div><p class="src">' + R.t("Statut le plus défavorable des indicateurs du domaine. Dépassement sur fond lime ; sous surveillance en gras.") + '</p>';
+
+  const liq = '<div class="band">Couverture de liquidité par scénario</div><div class="scroll"><table><thead><tr><th>Fonds</th>' +
+    R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") + '<th class="n">Reverse</th></tr></thead><tbody>' +
+    D.fonds.map((f, k) => {
+      const cfg = liqCfg(f.id), rv = R.reverse(cfg);
+      return '<tr' + z(k) + '><td>' + go("liquidite", ' data-fonds="' + f.id + '"', R.esc(f.court)) + '</td>' +
+        R.SCENARIOS.map(s => { const v = R.liquidite(cfg, s.k).couverture; return '<td class="n' + (v !== null && v < 1 ? ' st-SURV' : '') + '">' + R.val(v, "x") + '</td>'; }).join("") +
+        '<td class="n">' + (rv.type === "ouvert" ? R.val(rv.rmax, "% VL") + " rachats" : R.val(rv.dmax, "%") + " défaut") + '</td></tr>';
+    }).join("") + '</tbody></table></div><p class="src">' + R.t("Reverse : rachats par fenêtre (fonds ouverts) ou défaut des investisseurs (fonds fermé) qui ramènent la couverture à 1,00x.") + '</p>';
+
+  h += mx;
+
+  const pts = R.pointsAttention(i);
+  const pa = '<div class="band">Points d\'attention <span class="hint">(' + pts.length + ')</span></div><div class="scroll"><table><thead><tr>' +
+    '<th>Fonds</th><th>Domaine</th><th>Indicateur</th><th class="n">Valeur</th><th class="n">Alerte</th><th class="n">Limite</th><th class="n">Marge</th><th>Statut</th></tr></thead><tbody>' +
+    pts.map((x, k) => { const m = R.marge(x, i);
+      return '<tr' + z(k) + '><td class="nw">' + R.esc(R.fondsById[x.f].court) + '</td><td class="nw">' + R.esc(R.domById[x.d].nom) + '</td>' +
+        '<td>' + go("indicateurs", ' data-ind="' + x.id + '"', R.t(x.lib)) + '</td><td class="n">' + R.val(R.valeur(x, i), x.u) + '</td>' +
+        '<td class="n">' + seuil(x, "al") + '</td><td class="n">' + seuil(x, "lim") + '</td><td class="n">' + (m === null ? "-" : R.signe(m, x.u)) + '</td>' +
+        tdS(R.statut(x, i), true) + '</tr>'; }).join("") + '</tbody></table></div>';
+
+  const ta = '<div class="band">Actions ouvertes</div><div class="scroll"><table><thead><tr><th>Échéance</th><th>Fonds</th><th>Action</th><th>Priorité</th></tr></thead><tbody>' +
+    acts.map((a, k) => '<tr' + z(k) + '><td class="nw">' + R.date(a.ech) + '<br><span class="src">' + R.esc(R.delai(a.ech)) + '</span></td>' +
+      '<td class="nw">' + R.esc(a.f ? R.fondsById[a.f].court : "Nourricier PG") + '</td><td>' + R.t(a.objet) + '</td>' +
+      '<td class="nw' + (a.prio === "Haute" ? ' st-SURV' : '') + '">' + R.esc(a.prio) + '</td></tr>').join("") + '</tbody></table></div>';
+  const te = '<div class="band">Échéances à 30 jours</div><div class="scroll"><table><thead><tr><th>Date</th><th>Objet</th><th>Fonds</th><th>Statut</th></tr></thead><tbody>' +
+    ech.map((e, k) => '<tr' + z(k) + '><td class="nw">' + R.date(e.date) + '</td><td>' + R.t(e.objet) + '</td><td>' + R.esc(e.f.map(x => R.fondsById[x].court).join(", ")) + '</td>' +
+      '<td class="nw' + (e.statut === "À risque" || e.statut === "Non lancé" ? ' st-SURV' : '') + '">' + R.esc(e.statut) + '</td></tr>').join("") + '</tbody></table></div>' +
+    '<p class="src">' + go("echeancier", "", "Voir l'échéancier complet") + '</p>';
+  h += '<div class="grid2"><div>' + liq + '</div><div>' + te + '</div></div>' + pa + ta;
+  return h;
+}
+
+/* ------------------------------------------------------------ Fonds */
+function shFonds() {
+  const i = st.i, f = R.fondsById[st.fonds];
+  const car = [["Dénomination", f.nom, "Documentation du fonds"], ["Nature", f.nature, "Documentation du fonds"],
+               ["Liquidité", f.liquidite, "Prospectus ou règlement, à confirmer"], ["Fréquence de VL", f.freq, "Documentation du fonds"],
+               ["Devise de référence", f.devise, "Documentation du fonds"], ["Dernière VL", R.val(f.encours, "EUR m") + " au " + R.date(f.dateVl), "Valorisateur"]];
+  const sf = R.statutFonds(f.id, i);
+  let h = '<div class="band">Caractéristiques</div><div class="scroll"><table><thead><tr><th>Rubrique</th><th>Valeur</th><th>Source</th></tr></thead><tbody>' +
+    car.map((r, k) => '<tr' + z(k) + '><td class="nw">' + r[0] + '</td><td>' + R.t(r[1]) + '</td><td class="src">' + R.esc(r[2]) + '</td></tr>').join("") +
+    '<tr><td>Statut d\'ensemble au ' + arr() + '</td>' + tdS(sf, true) + '<td class="src">Calcul</td></tr></tbody></table></div>';
+
+  const cols = D.meta.arretes.map((a, k) => '<th class="n' + (k === st.i ? ' cur' : '') + '">' + R.dateCourte(a) + '</th>').join("");
+  let k = 0;
+  const rows = D.domaines.map(d => {
+    const l = R.indicateursDe(f.id, d.id);
+    if (!l.length) return '<tr' + z(k++) + '><td class="cur">' + R.esc(d.nom) + '</td><td colspan="11" class="st-NA">Non applicable</td></tr>';
+    return l.map((x, j) => { const m = R.marge(x, i);
+      return '<tr' + z(k++) + '><td class="cur nw">' + (j === 0 ? R.esc(d.nom) : "") + '</td>' +
+        '<td>' + go("indicateurs", ' data-ind="' + x.id + '"', R.t(x.lib)) + '</td><td>' + R.esc(x.type) + '</td>' +
+        D.meta.arretes.map((a, q) => '<td class="n' + (q === st.i ? ' cur' : '') + '">' + R.val(R.valeur(x, q), x.u) + '</td>').join("") +
+        '<td class="n">' + seuil(x, "al") + '</td><td class="n">' + seuil(x, "lim") + '</td><td class="n">' + (m === null ? "-" : R.signe(m, x.u)) + '</td>' +
+        tdS(R.statut(x, i), true) + '</tr>'; }).join("");
+  }).join("");
+  h += '<div class="band">Indicateurs par domaine</div><div class="scroll"><table><thead><tr><th>Domaine</th><th>Indicateur</th><th>Type</th>' + cols +
+    '<th class="n">Alerte</th><th class="n">Limite</th><th class="n">Marge</th><th>Statut</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="src">' + R.t("Colonne en gras : date d'arrêté sélectionnée. Marge : distance restante jusqu'à la limite, négative en cas de dépassement.") + '</p>';
+
+  const acts = R.actionsOuvertes([f.id]).filter(a => a.f === f.id);
+  h += '<div class="band">Actions du fonds</div><div class="scroll"><table><thead><tr><th>Échéance</th><th>Action</th><th>Responsable</th><th>Priorité</th><th>Statut</th></tr></thead><tbody>' +
+    (acts.length ? acts.map((a, q) => '<tr' + z(q) + '><td class="nw">' + R.date(a.ech) + '</td><td>' + R.t(a.objet) + '</td><td>' + R.esc(a.resp) + '</td>' +
+      '<td class="nw' + (a.prio === "Haute" ? ' st-SURV' : '') + '">' + R.esc(a.prio) + '</td><td class="nw">' + R.esc(a.statut) + '</td></tr>').join("") :
+      '<tr><td colspan="5" class="src">Aucune action ouverte.</td></tr>') + '</tbody></table></div>';
+  return h;
+}
+
+/* ------------------------------------------------------------ Liquidité */
+function shLiquidite() {
+  const id = st.fonds, cfg = liqCfg(id), f = R.fondsById[id];
+  let h = '<div class="band">Données <span class="hint">- ' + R.esc(f.nom) + '</span></div><div class="scroll"><table><thead><tr><th>Paramètre</th><th class="n">Valeur</th><th>Unité</th><th>Source</th></tr></thead><tbody>' +
+    cfg.params.map((p, k) => '<tr' + z(k) + '><td>' + R.esc(p.lib) + '</td><td class="n"><input class="in num" type="number" step="0.1" id="p-' + id + '-' + p.k +
+      '" data-p="' + k + '" value="' + p.v + '" aria-label="' + R.esc(p.lib) + '"></td><td class="src">' + R.esc(p.u) + '</td><td class="src">' + R.t(p.src) + '</td></tr>').join("") +
+    '</tbody></table></div>';
+  h += '<div class="band">Calibrage des scénarios</div><div class="scroll"><table><thead><tr><th>Hypothèse</th>' + R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") +
+    '<th>Unité</th><th>Source</th></tr></thead><tbody>' +
+    cfg.scen.map((p, k) => '<tr' + z(k) + '><td>' + R.esc(p.lib) + '</td>' + R.SCENARIOS.map(s => '<td class="n"><input class="in num" type="number" step="0.1" id="s-' + id + '-' + p.k + '-' + s.k +
+      '" data-s="' + k + '|' + s.k + '" value="' + p.v[s.k] + '" aria-label="' + R.esc(p.lib + ", " + s.lib) + '"></td>').join("") +
+      '<td class="src">' + R.esc(p.u) + '</td><td class="src">' + R.t(p.src) + '</td></tr>').join("") + '</tbody></table></div>' +
+    '<p class="src">Cellules crème&nbsp;: saisie. Le calcul se met à jour à chaque modification. <button type="button" class="lnk" id="reset">Rétablir les valeurs de démonstration</button></p>';
+  h += '<div class="grid2"><div><div class="band">Calcul <span class="hint">- EUR m</span></div><div class="scroll" id="calc"></div></div>' +
+    '<div><div class="band">Résultats</div><div class="scroll" id="res"></div></div></div>';
+  h += '<div class="band">Hypothèses clés et limites</div><ul class="notes">' + D.hypothesesLiquidite.map(x => '<li>' + R.t(x) + '</li>').join("") + '</ul>';
+  return h;
+}
+
+function majLiquidite() {
+  const cfg = liqCfg(st.fonds), res = {};
+  R.SCENARIOS.forEach(s => { res[s.k] = R.liquidite(cfg, s.k); });
+  const eur = v => R.nombre(v, 1);
+  const sg = v => (v > 0.05 ? "+" : v < -0.05 ? "-" : "") + R.nombre(Math.abs(v), 1);
+  const lignes = cfg.type === "ouvert" ? [
+    ["Rachats demandés", r => eur(r.demande)], ["Rachats servis après gate", r => eur(r.servis)], ["Rachats différés", r => eur(r.differes)],
+    ["Appels des fonds cibles", r => eur(r.appels)], ["Besoins de liquidité", r => eur(r.besoins), true], ["Ressources liquides", r => eur(r.ressources), true],
+    ["Solde", r => sg(r.solde), true]
+  ] : [
+    ["Appels de capitaux programmés", r => eur(r.appels)], ["Défaut des investisseurs", r => eur(r.defautMontant)], ["Appels encaissés", r => eur(r.encaisses)],
+    ["Trésorerie disponible", r => eur(r.treso)], ["Ligne relais disponible", r => eur(r.ligne)], ["Ressources", r => eur(r.ressources), true],
+    ["Décaissements prévus", r => eur(r.besoins), true], ["Solde", r => sg(r.solde), true]
+  ];
+  $("calc").innerHTML = '<table><thead><tr><th>Ligne</th>' + R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") + '</tr></thead><tbody>' +
+    lignes.map((l, k) => '<tr' + z(k) + '><td' + (l[2] ? ' class="cur"' : '') + '>' + l[0] + '</td>' +
+      R.SCENARIOS.map(s => '<td class="n' + (l[2] ? ' cur' : '') + '">' + l[1](res[s.k]) + '</td>').join("") + '</tr>').join("") + '</tbody></table>';
+  const rv = R.reverse(cfg);
+  const premier = R.SCENARIOS.find(s => res[s.k].couverture !== null && res[s.k].couverture < 1);
+  $("res").innerHTML = '<table><thead><tr><th>Résultat</th>' + R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") + '</tr></thead><tbody>' +
+    '<tr><td>Couverture</td>' + R.SCENARIOS.map(s => '<td class="n key">' + R.val(res[s.k].couverture, "x") + '</td>').join("") + '</tr>' +
+    '<tr class="z"><td>Seuil de couverture</td>' + R.SCENARIOS.map(() => '<td class="n">1,00x</td>').join("") + '</tr>' +
+    '<tr><td>Reverse stress test</td><td colspan="3" class="key">' + R.t(rv.type === "ouvert" ? R.val(rv.rmax, "% VL") + " de rachats par fenêtre" : R.val(rv.dmax, "%") + " de défaut des investisseurs") + '</td></tr>' +
+    '</tbody></table><p class="src">' + R.t(rv.texte) + ' ' + R.t(premier ? "La couverture passe sous 1,00x dès le scénario " + premier.lib.toLowerCase() + "." : "La couverture reste au-dessus de 1,00x dans les trois scénarios.") + '</p>';
+}
+
+/* ------------------------------------------------------------ Indicateurs */
+function shIndicateurs() {
+  const i = st.i, F = st.filtre;
+  const opt = (v, cur, lib) => '<option value="' + v + '"' + (v === cur ? " selected" : "") + '>' + R.esc(lib) + '</option>';
+  const l = D.indicateurs.filter(x => (!F.fonds || x.f === F.fonds) && (!F.dom || x.d === F.dom) && (!F.statut || R.statut(x, i) === F.statut) && (!F.type || x.type === F.type));
+  if (!st.sel || !l.some(x => x.id === st.sel)) st.sel = l.length ? l[0].id : null;
+  let h = '<div class="ctl">' +
+    '<label for="fF">Fonds</label><select class="in" id="fF" data-f="fonds">' + opt("", F.fonds, "Tous") + D.fonds.map(f => opt(f.id, F.fonds, f.court)).join("") + '</select>' +
+    '<label for="fD">Domaine</label><select class="in" id="fD" data-f="dom">' + opt("", F.dom, "Tous") + D.domaines.map(d => opt(d.id, F.dom, d.nom)).join("") + '</select>' +
+    '<label for="fS">Statut</label><select class="in" id="fS" data-f="statut">' + opt("", F.statut, "Tous") + R.ORDRE_STATUTS.map(c => opt(c, F.statut, R.STATUTS[c].lib)).join("") + '</select>' +
+    '<label for="fT">Type</label><select class="in" id="fT" data-f="type">' + opt("", F.type, "Tous") + opt("KRI", F.type, "KRI") + opt("Limite", F.type, "Limite") + '</select></div>';
+  h += '<div class="band">Registre des indicateurs <span class="hint">(' + l.length + ' sur ' + D.indicateurs.length + ')</span></div><div class="scroll"><table><thead><tr>' +
+    '<th>Identifiant</th><th>Fonds</th><th>Domaine</th><th>Indicateur</th><th>Type</th><th class="n">Valeur</th><th class="n">Alerte</th><th class="n">Limite</th><th class="n">Marge</th><th>Tendance</th><th>Statut</th></tr></thead><tbody>' +
+    (l.length ? l.map((x, k) => { const m = R.marge(x, i);
+      return '<tr class="' + (k % 2 ? "z" : "") + (x.id === st.sel ? " sel" : "") + '"><td class="nw"><button type="button" class="lnk" data-pick="' + x.id + '">' + x.id + '</button></td>' +
+        '<td class="nw">' + R.esc(R.fondsById[x.f].court) + '</td><td class="nw">' + R.esc(R.domById[x.d].nom) + '</td><td>' + R.t(x.lib) + '</td><td>' + x.type + '</td>' +
+        '<td class="n">' + R.val(R.valeur(x, i), x.u) + '</td><td class="n">' + seuil(x, "al") + '</td><td class="n">' + seuil(x, "lim") + '</td>' +
+        '<td class="n">' + (m === null ? "-" : R.signe(m, x.u)) + '</td><td class="nw">' + R.esc(R.tendance(x, i).lib) + '</td>' + tdS(R.statut(x, i), true) + '</tr>'; }).join("") :
+      '<tr><td colspan="11" class="src">Aucun indicateur ne correspond aux filtres.</td></tr>') + '</tbody></table></div>';
+  h += '<div id="detail">' + detail() + '</div>';
+  return h;
+}
+
+function detail() {
+  if (!st.sel) return "";
+  const x = R.indById[st.sel], i = st.i, a = x.act ? R.actById[x.act] : null;
+  const hist = '<table><thead><tr><th>Arrêté</th><th class="n">Valeur</th><th>Statut</th></tr></thead><tbody>' +
+    D.meta.arretes.map((d, k) => '<tr' + z(k) + '><td class="nw' + (k === i ? ' cur' : '') + '">' + R.date(d) + '</td><td class="n' + (k === i ? ' cur' : '') + '">' +
+      R.val(R.valeur(x, k), x.u) + '</td>' + tdS(R.statut(x, k), true) + '</tr>').join("") + '</tbody></table>';
+  const rows = [["Identifiant", x.id], ["Indicateur", x.lib], ["Définition", x.def], ["Fonds", R.fondsById[x.f].nom], ["Domaine", R.domById[x.d].nom],
+    ["Type et nature", x.type + ", " + x.nat.toLowerCase()], ["Sens", x.sens === "max" ? "Plafond" : "Plancher"],
+    ["Seuil d'alerte", seuil(x, "al")], ["Limite", x.lim === null ? "Aucune" : seuil(x, "lim")], ["Source", x.src], ["Référence", x.ref]];
+  if (x.com) rows.push(["Commentaire", x.com]);
+  if (a) rows.push(["Action liée", a.objet + " (" + a.resp + ", échéance le " + R.date(a.ech) + ")"]);
+  return '<div class="band">Détail de l\'indicateur <span class="hint">- ' + x.id + '</span></div><div class="grid2"><div class="scroll"><table><thead><tr><th>Rubrique</th><th>Valeur</th></tr></thead><tbody>' +
+    rows.map((r, k) => '<tr' + z(k) + '><td class="nw">' + r[0] + '</td><td>' + R.t(r[1]) + '</td></tr>').join("") +
+    '<tr><td>Statut au ' + arr() + '</td>' + tdS(R.statut(x, i), true) + '</tr></tbody></table></div>' +
+    '<div class="scroll">' + hist + '</div></div>';
+}
+
+/* ------------------------------------------------------------ Échéancier, Pipeline, Studios */
+function shEcheancier() {
+  let mois = "", k = 0;
+  const rows = D.echeances.map(e => {
+    let g = "";
+    const m = R.moisAnnee(e.date);
+    if (m !== mois) { mois = m; k = 0; g = '<tr class="grp"><td colspan="6">' + m.charAt(0).toUpperCase() + m.slice(1) + '</td></tr>'; }
+    return g + '<tr' + z(k++) + '><td class="nw">' + R.date(e.date) + '</td><td class="nw src">' + R.esc(R.delai(e.date)) + '</td><td>' + R.t(e.objet) + '</td>' +
+      '<td>' + R.esc(e.f.map(x => R.fondsById[x].court).join(", ")) + '</td><td class="src">' + R.t(e.ref) + '</td>' +
+      '<td class="nw' + (e.statut === "À risque" || e.statut === "Non lancé" ? ' st-SURV' : '') + '">' + R.esc(e.statut) + '</td></tr>';
+  }).join("");
+  return '<div class="band">Échéancier réglementaire et interne</div><div class="scroll"><table><thead><tr><th>Date</th><th>Délai</th><th>Objet</th><th>Fonds</th><th>Référence</th><th>Statut</th></tr></thead><tbody>' +
+    rows + '</tbody></table></div>';
+}
+
+function shPipeline() {
+  const bloc = (titre, l) => '<div class="band">' + titre + '</div><div class="scroll"><table><thead><tr><th>Dossier</th><th>Nature</th><th>Étape en cours</th><th class="n">Avancement</th>' +
+    '<th>Prochaine étape</th><th>Échéance</th><th>Point d\'attention</th><th>Lien</th></tr></thead><tbody>' +
+    l.map((p, k) => '<tr' + z(k) + '><td>' + R.esc(p.nom) + '</td><td class="nw">' + R.esc(p.nature) + '</td><td>' + R.esc(p.etapes[p.cur]) + '</td>' +
+      '<td class="n">' + (p.cur + 1) + ' sur ' + p.etapes.length + '</td><td>' + R.esc(p.prochaine) + '</td><td class="nw">' + R.date(p.ech) + '</td>' +
+      '<td>' + R.t(p.point) + '</td><td class="nw">' + (p.url ? '<a href="' + p.url + '" target="_blank" rel="noopener">Ouvrir</a>' : '<span class="src">-</span>') + '</td></tr>').join("") +
+    '</tbody></table></div>';
+  return bloc("Onboarding", D.pipeline.filter(p => p.nature === "Onboarding")) +
+    bloc("Due diligence et Initial Risk Profile", D.pipeline.filter(p => p.nature !== "Onboarding"));
+}
+
+function shStudios() {
+  return '<div class="band">Studios de la fonction de gestion des risques</div><div class="scroll"><table><thead><tr><th>Studio</th><th>Objet</th><th>État</th><th>Lien</th></tr></thead><tbody>' +
+    D.studios.map((s, k) => '<tr' + z(k) + '><td class="nw cur">' + R.esc(s.nom) + '</td><td>' + R.esc(s.objet) + '</td><td class="nw' + (s.etat === "En service" ? '' : ' src') + '">' + R.esc(s.etat) + '</td>' +
+      '<td class="nw">' + (s.url ? '<a href="' + s.url + '" target="_blank" rel="noopener">Ouvrir</a>' : '<span class="src">-</span>') + '</td></tr>').join("") +
+    '</tbody></table></div>';
+}
+
+/* ------------------------------------------------------------ rendu et événements */
+const RENDU = { dashboard: shDashboard, fonds: shFonds, liquidite: shLiquidite, indicateurs: shIndicateurs,
+                echeancier: shEcheancier, pipeline: shPipeline, studios: shStudios };
+
+function rendu() {
+  cadre();
+  $("sheet").setAttribute("aria-labelledby", "tab-" + st.sheet);
+  $("sheet").innerHTML = RENDU[st.sheet]();
+  if (st.sheet === "liquidite") majLiquidite();
+}
+
+function ouvrir(sheet) {
+  st.sheet = sheet;
+  try { history.replaceState(null, "", "#" + sheet); } catch (e) {}
+  rendu();
+  window.scrollTo(0, 0);
+}
+
+$("tabs").addEventListener("click", e => { const b = e.target.closest("[data-sheet]"); if (b) ouvrir(b.dataset.sheet); });
+$("tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const k = SHEETS.findIndex(s => s[0] === st.sheet), n = (k + (e.key === "ArrowRight" ? 1 : SHEETS.length - 1)) % SHEETS.length;
+  ouvrir(SHEETS[n][0]); $("tab-" + SHEETS[n][0]).focus();
+});
+$("arrete").addEventListener("change", e => { st.i = Number(e.target.value); rendu(); });
+$("fonds").addEventListener("change", e => { st.fonds = e.target.value; rendu(); });
+
+$("sheet").addEventListener("click", e => {
+  const g = e.target.closest("[data-go]");
+  if (g) {
+    if (g.dataset.fonds) st.fonds = g.dataset.fonds;
+    if (g.dataset.ind) { st.filtre = { fonds: "", dom: "", statut: "", type: "" }; st.sel = g.dataset.ind; }
+    ouvrir(g.dataset.go);
+    if (g.dataset.ind) { const d = $("detail"); if (d) d.scrollIntoView({ block: "start" }); }
+    return;
+  }
+  const p = e.target.closest("[data-pick]");
+  if (p) { st.sel = p.dataset.pick; rendu(); const d = $("detail"); if (d) d.scrollIntoView({ block: "nearest" }); return; }
+  if (e.target.id === "reset") { delete st.liq[st.fonds]; rendu(); }
+});
+$("sheet").addEventListener("change", e => {
+  const f = e.target.closest("select[data-f]");
+  if (f) { st.filtre[f.dataset.f] = f.value; rendu(); const el = $(f.id); if (el) el.focus(); }
+});
+$("sheet").addEventListener("input", e => {
+  const el = e.target, cfg = liqCfg(st.fonds);
+  if (el.dataset.p !== undefined) cfg.params[Number(el.dataset.p)].v = el.value === "" ? 0 : Number(el.value);
+  else if (el.dataset.s !== undefined) { const q = el.dataset.s.split("|"); cfg.scen[Number(q[0])].v[q[1]] = el.value === "" ? 0 : Number(el.value); }
+  else return;
+  majLiquidite();
+});
+
+const h0 = (location.hash || "").slice(1);
+if (RENDU[h0]) st.sheet = h0;
+R.theme($("theme"));
+rendu();
+})();
+</script>
+</body>
+</html>
