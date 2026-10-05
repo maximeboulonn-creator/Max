@@ -6,6 +6,7 @@
 const R = window.RS, D = R.DATA;
 const st = { i: D.meta.arretes.length - 1, vue: "accueil", filtre: { statut: "", fonds: "" }, focus: null };
 let page = null, VUES = [];
+const PROPRES = {};
 const $ = id => document.getElementById(id);
 
 const C = (code, long) => '<span class="c-' + code + '">' + R.esc(long ? R.STATUTS[code].lib : R.STATUTS[code].court) + '</span>';
@@ -62,7 +63,7 @@ function todo(a) {
     '<p><span class="prio-' + a.prio + '">' + R.esc("Priorité " + a.prio.toLowerCase()) + '</span> <span class="muted">- ' + R.esc(qui) + '</span></p>' +
     '<p>' + R.t(a.objet) + '</p>' +
     (ind ? '<button type="button" class="lk" data-open="' + ind.id + '">Voir l\'indicateur</button>'
-         : '<button type="button" class="lk" data-vue-go="pipeline">Voir le dossier</button>') +
+         : '<button type="button" class="lk" data-dossier="' + a.pipe + '">Voir le dossier</button>') +
     '</div></li>';
 }
 
@@ -134,7 +135,7 @@ function vIndicateurs() {
     '<div class="panel">' + chipsS + chipsF + '<div class="scroll"><table class="list"><thead><tr><th>Statut</th><th>Fonds</th><th>Domaine</th><th>Indicateur</th><th class="n">Valeur</th>' +
     '<th class="n">Alerte</th><th class="n">Limite</th><th class="n">Marge</th><th>Tendance</th><th>Évolution</th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="10" class="muted">Aucun indicateur ne correspond aux filtres.</td></tr>') + '</tbody></table></div>' +
-    '<p class="note">' + R.t("Sélectionner une ligne pour l'ouvrir dans l'écran " + page.accueil.toLowerCase() + ".") + '</p></div>';
+    '<p class="note">' + R.t("Sélectionner une ligne pour l'ouvrir " + (page.cibleOuverture || "dans l'écran " + page.accueil.toLowerCase()) + ".") + '</p></div>';
 }
 
 function vEcheancier() {
@@ -187,7 +188,7 @@ function cadre() {
   $("views").innerHTML = VUES.map(v => '<button type="button" role="tab" id="tab-' + v[0] + '" data-vue="' + v[0] + '" aria-selected="' + (v[0] === st.vue) + '">' + v[1] + '</button>').join("");
   $("arrete").innerHTML = D.meta.arretes.map((a, k) => '<option value="' + k + '"' + (k === st.i ? " selected" : "") + '>' + R.date(a) + '</option>').join("");
   $("demo").textContent = R.fr("Fundcraft France. Données de démonstration : valeurs fictives, non issues des fonds. Produit le " + D.meta.produit + ".");
-  $("foot").textContent = R.fr("Risk Studio, " + page.nom.toLowerCase() + ". Les quatre consoles partagent les mêmes données, les mêmes calculs et les mêmes vues secondaires ; seul l'écran d'accueil change.");
+  $("foot").textContent = R.fr(page.pied || "Risk Studio, " + page.nom.toLowerCase() + ". Les quatre consoles partagent les mêmes données, les mêmes calculs et les mêmes vues secondaires ; seul l'écran d'accueil change.");
 }
 
 function rendu() {
@@ -195,7 +196,7 @@ function rendu() {
   const v = $("view");
   v.setAttribute("role", "tabpanel");
   v.setAttribute("aria-labelledby", "tab-" + st.vue);
-  v.innerHTML = st.vue === "accueil" ? page.accueilHtml() : RENDU[st.vue]();
+  v.innerHTML = PROPRES[st.vue] ? PROPRES[st.vue]() : RENDU[st.vue]();
   if (page.apres) page.apres();
   if (st.focus) {
     const el = $("it-" + st.focus) || document.querySelector('[data-focus="' + st.focus + '"]');
@@ -211,16 +212,20 @@ function vue(v) {
 }
 
 function ouvrir(id) {
-  page.ouvrir(id);
-  st.focus = id; st.vue = "accueil";
-  try { history.replaceState(null, "", "#accueil"); } catch (e) {}
+  const cible = page.ouvrir(id) || VUES[0][0];
+  st.focus = id; st.vue = cible;
+  try { history.replaceState(null, "", "#" + cible); } catch (e) {}
+  window.scrollTo(0, 0);
   rendu();
 }
 
 function boot(p) {
   page = p;
-  VUES = [["accueil", p.accueil], ["liquidite", "Liquidité"], ["indicateurs", "Indicateurs"], ["echeancier", "Échéancier"],
-          ["pipeline", "Onboarding et due diligence"], ["studios", "Studios"]];
+  /* une page peut déclarer ses propres écrans : [clé, libellé, fonction] ou le nom d'une vue du kit */
+  const LIBS = { liquidite: "Liquidité", indicateurs: "Indicateurs", echeancier: "Échéancier", pipeline: "Onboarding et due diligence", studios: "Studios" };
+  const decl = p.vues || [["accueil", p.accueil, p.accueilHtml], "liquidite", "indicateurs", "echeancier", "pipeline", "studios"];
+  VUES = decl.map(v => typeof v === "string" ? [v, LIBS[v]] : (PROPRES[v[0]] = v[2], [v[0], v[1]]));
+  st.vue = VUES[0][0];
   shell();
   $("views").addEventListener("click", e => { const b = e.target.closest("[data-vue]"); if (b) vue(b.dataset.vue); });
   $("arrete").addEventListener("change", e => { st.i = Number(e.target.value); rendu(); });
@@ -228,6 +233,7 @@ function boot(p) {
     if (page.click && page.click(e)) return;
     const o = e.target.closest("[data-open]"); if (o) { ouvrir(o.dataset.open); return; }
     const g = e.target.closest("[data-vue-go]"); if (g) { vue(g.dataset.vueGo); return; }
+    const ds = e.target.closest("[data-dossier]"); if (ds) { if (page.dossier) page.dossier(ds.dataset.dossier); else vue("pipeline"); return; }
     const fg = e.target.closest("[data-filtre]"); if (fg) { st.filtre = { statut: fg.dataset.filtre, fonds: "" }; vue("indicateurs"); return; }
     const fs = e.target.closest("[data-fs]"); if (fs) { st.filtre.statut = fs.dataset.fs; rendu(); return; }
     const ff = e.target.closest("[data-ff]"); if (ff) { st.filtre.fonds = ff.dataset.ff; rendu(); }
@@ -238,10 +244,11 @@ function boot(p) {
     if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); ouvrir(row.dataset.open); }
   });
   const h0 = (location.hash || "").slice(1);
-  if (h0 === "accueil" || RENDU[h0]) st.vue = h0;
+  if (VUES.some(v => v[0] === h0)) st.vue = h0;
   R.theme($("theme"));
   rendu();
 }
 
-window.RK = { st, C, seuil, pl, arrete, spark, article, todo, echItem, liqBlock, etapes, rendu, vue, ouvrir, boot };
+window.RK = { st, C, seuil, pl, arrete, spark, article, todo, echItem, liqBlock, etapes, rendu, vue, ouvrir, boot,
+  vues: { liquidite: vLiquidite, indicateurs: vIndicateurs, echeancier: vEcheancier, pipeline: vPipeline, studios: vStudios } };
 })();

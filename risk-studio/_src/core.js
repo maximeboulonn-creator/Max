@@ -358,6 +358,8 @@ function fr(s) {
   return String(s == null ? "" : s).replace(/ ([:;?!%])/g, " $1");
 }
 function t(s) { return esc(fr(s)); }
+/* « de » élidé devant une voyelle : d'AirFund, de FPS */
+function de(nom) { return (/^[AEIOUYÉÈÊaeiouyéèê]/.test(nom) ? "d'" : "de ") + nom; }
 
 function nombre(v, dec) {
   return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
@@ -614,7 +616,7 @@ function theme(btn) {
 
 window.RS = {
   DATA, STATUTS, ORDRE_STATUTS, SCENARIOS, fondsById, domById, indById, actById, pipeById,
-  esc, fr, t, nombre, val, signe, date, dateCourte, dateLongue, moisAnnee, jours, delai,
+  esc, fr, t, de, nombre, val, signe, date, dateCourte, dateLongue, moisAnnee, jours, delai,
   valeur, statut, marge, tendance, pire, indicateursDe, statutDomaine, statutFonds, compte,
   pointsAttention, actionsOuvertes, echeancesDans,
   copieLiquidite, liquidite, reverse, theme,

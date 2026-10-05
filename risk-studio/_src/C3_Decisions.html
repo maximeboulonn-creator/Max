@@ -85,11 +85,11 @@ function ordreDuJour(pts) {
   const i = st.i, lignes = [], vus = new Set();
   pts.filter(x => R.statut(x, i) === "DEP").forEach(x => {
     vus.add(x.id);
-    lignes.push(["Décision", "Dépassement : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + " (" + R.val(R.valeur(x, i), x.u) + " " + phraseValeur(x) + "). Qualification et plan de rétablissement."]);
+    lignes.push(["Décision", "Dépassement : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " " + R.de(R.fondsById[x.f].nom) + " (" + R.val(R.valeur(x, i), x.u) + " " + phraseValeur(x) + "). Qualification et plan de rétablissement."]);
   });
   pts.filter(x => R.statut(x, i) === "MAN").forEach(x => {
     vus.add(x.id);
-    lignes.push(["Information", "Donnée manquante : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + "."]);
+    lignes.push(["Information", "Donnée manquante : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " " + R.de(R.fondsById[x.f].nom) + "."]);
   });
   R.actionsOuvertes().filter(a => a.prio === "Haute" && a.ind && !vus.has(a.ind)).forEach(a => {
     vus.add(a.ind);
@@ -97,7 +97,7 @@ function ordreDuJour(pts) {
   });
   pts.filter(x => R.statut(x, i) === "SURV" && !vus.has(x.id)).forEach(x => {
     const p = R.projection(x, i, "lim");
-    if (p.code === "proche") lignes.push(["Information", "Trajectoire : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + ", limite projetée " + p.lib + "."]);
+    if (p.code === "proche") lignes.push(["Information", "Trajectoire : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " " + R.de(R.fondsById[x.f].nom) + ", limite projetée " + p.lib + "."]);
   });
   D.actions.filter(a => a.pipe).forEach(a => lignes.push(["Validation", R.pipeById[a.pipe].nom + " : " + a.objet.replace(/^Comité des risques : /, "").replace(/^./, c => c.toLowerCase()) + "."]));
   return '<section class="panel agenda"><h2 class="lbl">' + R.esc("Ordre du jour proposé, comité des risques du " + R.date(comite.date)) + '</h2><ol>' +

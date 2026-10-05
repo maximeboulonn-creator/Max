@@ -6,6 +6,7 @@ import pathlib
 SRC = pathlib.Path(__file__).resolve().parent
 OUT = SRC.parent
 PAGES = {
+    "RiskStudio.html": "RiskStudio.html",
     "C1_Matrice.html": "RiskStudio_C1_Matrice.html",
     "C2_Fonds.html": "RiskStudio_C2_Fonds.html",
     "C3_Decisions.html": "RiskStudio_C3_Decisions.html",

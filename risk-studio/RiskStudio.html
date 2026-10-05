@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Risk Studio Matrice</title>
+<title>Risk Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
@@ -183,10 +183,80 @@ table { border-collapse: collapse; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
 
-/* Console 1 - matrice. Question : où sont les risques, tous fonds confondus ?
-   Matrice fonds x domaines au centre, détail du domaine sélectionné dessous,
-   actions et échéances à droite. */
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 24px; align-items: start; }
+/* Risk Studio - assemblage des quatre consoles.
+   Aujourd'hui : les décisions du jour (console 3), avec la date projetée de la console 4.
+   Fonds : la fiche du véhicule (console 2), où s'ouvre tout indicateur cité ailleurs.
+   Synthèse : la vue comité et Direction générale (matrice de la console 1, frise de la console 4,
+   couverture de liquidité, synthèse rédigée). */
+
+/* éléments partagés par les écrans */
+.lead { margin: 18px 0 14px; font-size: 10pt; max-width: 125ch; }
+.ttl { background: none; border: 0; padding: 0; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
+.ttl:hover { color: var(--teal); text-decoration: underline; }
+.ub { position: relative; width: 120px; height: 9px; background: var(--rule); flex: none; }
+.ub .f { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar); }
+.ub .f.SURV { background: var(--warn); }
+.ub .f.DEP { background: var(--crit); }
+.ub .t100 { position: absolute; top: -3px; bottom: -3px; border-left: 2px solid var(--ink); }
+.ub .tal { position: absolute; top: -3px; bottom: -3px; border-left: 1px dashed var(--ink); }
+.ubrow { display: flex; align-items: center; gap: 8px; margin: 2px 0 3px; }
+
+/* Aujourd'hui */
+.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.col { display: grid; gap: 18px; min-width: 0; }
+.lane-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.lane-h h2 { margin: 0; font-size: 10pt; }
+.lane-h .ct { font-size: 14pt; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lane-d { margin: 2px 0 8px; color: var(--muted); }
+.dec { padding: 10px 0; border-top: 1px solid var(--rule); }
+.dec p { margin: 0 0 3px; }
+.dec .v { font-size: 12pt; font-weight: 700; font-variant-numeric: tabular-nums; }
+.noact { color: var(--warn); }
+.agenda ol { margin: 0; padding-left: 18px; }
+.agenda li { padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.agenda li:last-child { border-bottom: 0; }
+.agenda li p { margin: 0 0 2px; }
+.kind { font-weight: 700; }
+.ag-g { margin: 12px 0 4px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ag { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.ag b { font-variant-numeric: tabular-nums; }
+.ag p { margin: 0; }
+
+/* Fonds */
+.c2 { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; margin-top: 18px; align-items: start; }
+.flist { min-width: 0; display: grid; gap: 16px; }
+.flist ul { list-style: none; margin: 0; padding: 0; }
+.fitem { width: 100%; display: grid; gap: 2px; text-align: left; background: none; border: 1px solid transparent; border-bottom-color: var(--rule); padding: 9px 10px; cursor: pointer; }
+.fitem:hover { background: var(--hover); }
+.fitem[aria-current="true"] { background: var(--surface); border-color: var(--rule); }
+.fitem[aria-current="true"] b { color: var(--navy); }
+.fitem .seg { margin: 2px 0 0; }
+.main { display: grid; gap: 18px; min-width: 0; }
+.fh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 20px; }
+.fh h1 { margin: 0; font-size: 13pt; }
+.fh p { margin: 2px 0 0; }
+.fst { font-size: 10pt; }
+dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 22px; margin: 12px 0 0; }
+dl.facts dt { color: var(--muted); font-size: 8pt; }
+dl.facts dd { margin: 0; }
+.doms { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin: 16px 0 12px; padding-block: 8px; border-block: 1px solid var(--rule); }
+.dom { display: grid; gap: 1px; text-align: left; background: none; border: 0; padding: 6px 8px; cursor: pointer; min-width: 0; }
+.dom:hover { background: var(--hover); }
+.dom[aria-pressed="true"] { background: var(--sel); box-shadow: inset 0 0 0 1px var(--teal); }
+.dom:disabled { cursor: default; opacity: .55; }
+.dom:disabled:hover { background: none; }
+.dom .k { font-size: 8pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dom .ct { color: var(--muted); font-size: 8pt; }
+.sub { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; }
+.steps li { border-top: 3px solid var(--rule); padding-top: 6px; color: var(--muted); }
+.steps li.done { border-top-color: var(--bar); color: var(--ink); }
+.steps li.cur { border-top-color: var(--teal); color: var(--ink); font-weight: 700; }
+.steps li span { display: block; font-size: 8pt; font-weight: 400; color: var(--muted); }
+
+/* Synthèse */
+.prose { font-size: 10pt; line-height: 1.55; max-width: 110ch; margin: 0; }
+.prose + .prose { margin-top: 8px; }
 .mx th, .mx td { border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
 .mx thead th { font-weight: 700; color: var(--muted); padding: 0 6px 6px; vertical-align: bottom; }
 .mx thead th:first-child { padding-left: 0; }
@@ -198,15 +268,47 @@ table { border-collapse: collapse; width: 100%; }
 .mx td.pend { padding: 8px 6px; color: var(--muted); }
 .cell { width: 100%; background: none; border: 0; padding: 9px 6px; text-align: left; cursor: pointer; white-space: nowrap; }
 .cell:hover { background: var(--hover); }
-.cell[aria-pressed="true"] { background: var(--sel); box-shadow: inset 0 0 0 1px var(--teal); }
 .cell.na { cursor: default; }
 .cell.na:hover { background: none; }
-.legend { margin: 8px 0 0; color: var(--muted); font-size: 8pt; }
-.detail { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); }
-.dh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 4px; }
-.dh h2 { margin: 0; font-size: 11pt; }
-.rail { display: grid; gap: 22px; min-width: 0; }
-@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+.syn2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.gh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 8px; }
+.gh h2 { margin: 0; }
+.leg { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 8pt; }
+.leg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.leg i.al { background: var(--warn); }
+.leg i.lim { background: var(--crit); }
+.leg i.run { border-radius: 0; width: 14px; height: 6px; background: var(--bar-soft); }
+.g-row { display: grid; grid-template-columns: minmax(0, 230px) minmax(0, 1fr) 104px; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.g-row:hover { background: var(--hover); }
+.g-row:last-child { border-bottom: 0; }
+.g-row.g-ax { cursor: default; padding: 0 0 2px; }
+.g-row.g-ax:hover { background: none; }
+.g-lab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-lab .muted { margin-right: 4px; }
+.g-tr { position: relative; height: 18px; }
+.g-tr .run { position: absolute; left: 0; top: 6px; height: 6px; background: var(--bar-soft); }
+.g-tr .dot { position: absolute; top: 4px; width: 10px; height: 10px; border-radius: 50%; transform: translateX(-50%); }
+.g-tr .dot.al { background: var(--warn); }
+.g-tr .dot.lim { background: var(--crit); }
+.g-tr .now { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--muted); }
+.g-tr .mo { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--rule); }
+.g-axis { position: relative; height: 14px; color: var(--faint); font-size: 8pt; }
+.g-axis span { position: absolute; white-space: nowrap; padding-left: 3px; }
+.g-when { text-align: right; white-space: nowrap; }
+
+@media (max-width: 1150px) {
+  .board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .col.c3 { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .syn2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 1000px) { .c2 { grid-template-columns: 1fr; } .sub { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .board, .col.c3 { grid-template-columns: 1fr; }
+  .doms { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .g-row { grid-template-columns: minmax(0, 1fr) 96px; }
+  .g-row .g-tr { grid-column: 1 / -1; grid-row: 2; }
+  .g-row.g-ax .g-axis { grid-column: 1 / -1; grid-row: 1; }
+}
 </style>
 </head>
 <body>
@@ -1096,77 +1198,317 @@ window.RK = { st, C, seuil, pl, arrete, spark, article, todo, echItem, liqBlock,
 (function () {
 "use strict";
 const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
-const loc = { f: null, d: null };
+const loc = { sel: null, dom: "", open: new Set() };
+const HORIZON = 6;
+const comite = D.echeances.find(e => /Comité des risques/.test(e.objet));
 
-/* sélection par défaut : la case la plus grave de la matrice */
-function defaut() {
-  let best = null, rang = -1;
-  D.fonds.forEach(f => D.domaines.forEach(d => {
-    const r = R.STATUTS[R.statutDomaine(f.id, d.id, st.i)].rang;
-    if (r > rang) { rang = r; best = [f.id, d.id]; }
-  }));
-  loc.f = best[0]; loc.d = best[1];
+/* ------------------------------------------------------------ fragments */
+const minus = s => s.charAt(0).toLowerCase() + s.slice(1);
+const nb = (n, zero, s1, sp) => n ? n + " " + K.pl(n, s1, sp) : zero;
+const fiche = (fid, txt, dom) => '<button type="button" class="lk" data-fiche="' + fid + '"' + (dom ? ' data-dom="' + dom + '"' : '') + '>' + txt + '</button>';
+const enHorizon = (p, mois) => (p.code === "proche" || p.code === "lointain") && p.mois <= mois;
+
+function phraseSeuil(x) {
+  return x.lim === null ? "alerte à " + K.seuil(x, "al") + ", sans limite" : (x.sens === "max" ? "pour un plafond de " : "pour un plancher de ") + K.seuil(x, "lim");
+}
+function libProj(p) {
+  if (p.code === "proche" || p.code === "lointain") return p.mois > 12 ? "Au-delà de 12 mois" : p.lib;
+  if (p.code === "aucun") return "Aucun franchissement";
+  return p.lib;
+}
+function ubar(x) {
+  const i = st.i, u = R.utilisation(x, i), ua = R.utilisationAlerte(x), code = R.statut(x, i);
+  if (u === null) return '<span class="muted">' + (x.lim === null ? "Sans limite" : "n.d.") + '</span>';
+  const pc = v => (Math.max(0, Math.min(v, 1.25)) / 1.25 * 100).toFixed(1) + "%";
+  return '<span class="ub" role="img" aria-label="' + R.esc("Marge consommée : " + R.nombre(u * 100, 0) + " %") + '"><span class="f ' + code + '" style="width:' + pc(u) + '"></span>' +
+    (ua !== null ? '<span class="tal" style="left:' + pc(ua) + '"></span>' : '') + '<span class="t100" style="left:' + pc(1) + '"></span></span>';
+}
+const part = x => { const u = R.utilisation(x, st.i); return u === null ? "" : R.nombre(u * 100, 0) + " %"; };
+
+/* ------------------------------------------------------------ Aujourd'hui */
+function item(x, mode) {
+  const i = st.i, code = R.statut(x, i), a = x.act ? R.actById[x.act] : null, f = R.fondsById[x.f];
+  const p = R.projection(x, i, "lim");
+  return '<li class="dec"><p class="muted">' + fiche(x.f, R.esc(f.court), x.d) + ' - ' + R.esc(R.domById[x.d].nom + " - " + x.type) + '</p>' +
+    '<p><button type="button" class="ttl" data-open="' + x.id + '">' + R.t(x.lib) + '</button></p>' +
+    (code === "MAN" ? '<p class="c-MAN">Non reçue au ' + R.date(K.arrete()) + '</p>' :
+      '<p><span class="v c-' + code + '">' + R.val(R.valeur(x, i), x.u) + '</span> <span class="muted">' + R.t(phraseSeuil(x)) + '</span></p>' +
+      (x.lim !== null ? '<div class="ubrow">' + ubar(x) + '<span class="muted">' + R.esc(part(x) + " de la marge consommée") + '</span></div>' : '')) +
+    (mode === "SURV" ? '<p class="muted">' + R.t(p.code === "sans" ? "Pas de limite : seuil d'alerte seul" : "Limite projetée : " + minus(libProj(p))) + '</p>' : '') +
+    (a ? '<p>' + R.t("Action : " + a.objet) + ' <span class="muted">' + R.esc("(" + a.resp + ", " + R.dateCourte(a.ech) + ", " + R.delai(a.ech) + ")") + '</span></p>'
+       : '<p class="noact">Aucune action ouverte</p>') + '</li>';
 }
 
-function accueilHtml() {
-  const i = st.i, c = R.compte(i), acts = R.actionsOuvertes(), ech = R.echeancesDans(30);
-  if (!loc.f || R.statutDomaine(loc.f, loc.d, i) === "NA") defaut();
-  const hautes = acts.filter(a => a.prio === "Haute").length;
-  const figs = [["DEP", c.DEP, K.pl(c.DEP, "Dépassement", "Dépassements"), "c-DEP"], ["MAN", c.MAN, K.pl(c.MAN, "Donnée manquante", "Données manquantes"), ""],
-                ["SURV", c.SURV, "Sous surveillance", "c-SURV"], ["OK", c.OK, K.pl(c.OK, "Conforme", "Conformes"), ""]];
-  let h = '<div class="summary">' + figs.map(f => '<button type="button" class="fig" data-filtre="' + f[0] + '"><b class="' + f[3] + '">' + f[1] + '</b><span>' + f[2] + '</span></button>').join("") +
-    '<div class="fig"><b>' + acts.length + '</b><span>' + R.esc("Actions ouvertes, dont " + hautes + " haute" + (hautes > 1 ? "s" : "")) + '</span></div>' +
-    '<div class="fig"><b>' + ech.length + '</b><span>Échéances à 30 jours</span></div></div>';
+function lane(titre, desc, l, mode) {
+  return '<section class="panel"><div class="lane-h"><h2>' + titre + '</h2><span class="ct' + (mode === "DEP" && l.length ? " c-DEP" : "") + '">' + l.length + '</span></div>' +
+    '<p class="lane-d">' + R.t(desc) + '</p>' +
+    (l.length ? '<ol class="plain">' + l.map(x => item(x, mode)).join("") + '</ol>' : '<p class="muted">Rien à traiter.</p>') + '</section>';
+}
 
+function ordreDuJour(pts) {
+  const i = st.i, lignes = [], vus = new Set();
+  pts.filter(x => R.statut(x, i) === "DEP").forEach(x => {
+    vus.add(x.id);
+    lignes.push(["Décision", "Dépassement : " + minus(x.lib) + " " + R.de(R.fondsById[x.f].nom) + " (" + R.val(R.valeur(x, i), x.u) + " " + phraseSeuil(x) + "). Qualification et plan de rétablissement.", x.id]);
+  });
+  pts.filter(x => R.statut(x, i) === "MAN").forEach(x => { vus.add(x.id); lignes.push(["Information", "Donnée manquante : " + minus(x.lib) + " " + R.de(R.fondsById[x.f].nom) + ".", x.id]); });
+  R.actionsOuvertes().filter(a => a.prio === "Haute" && a.ind && !vus.has(a.ind)).forEach(a => {
+    vus.add(a.ind); lignes.push(["Décision", R.fondsById[a.f].nom + " : " + minus(a.objet) + ".", a.ind]);
+  });
+  pts.filter(x => R.statut(x, i) === "SURV" && !vus.has(x.id)).forEach(x => {
+    const p = R.projection(x, i, "lim");
+    if (p.code === "proche") lignes.push(["Information", "Trajectoire : " + minus(x.lib) + " " + R.de(R.fondsById[x.f].nom) + ", limite projetée " + p.lib + ".", x.id]);
+  });
+  D.actions.filter(a => a.pipe).forEach(a => lignes.push(["Validation", R.pipeById[a.pipe].nom + " : " + minus(a.objet.replace(/^Comité des risques : /, "")) + ".", null, a.pipe]));
+  return '<section class="panel agenda"><h2 class="lbl">' + R.esc("Ordre du jour proposé, comité des risques du " + R.date(comite.date)) + '</h2><ol>' +
+    lignes.map(l => '<li><p><span class="kind">' + l[0] + '.</span> ' + R.t(l[1]) + '</p>' +
+      (l[2] ? '<button type="button" class="lk" data-open="' + l[2] + '">Fiche du fonds</button>' : '<button type="button" class="lk" data-dossier="' + l[3] + '">Voir le dossier</button>') + '</li>').join("") + '</ol>' +
+    '<p class="note">' + R.t("Construit à partir des dépassements, des données manquantes, des actions de priorité haute et des trajectoires qui atteignent la limite d'ici 3 mois.") + '</p></section>';
+}
+
+function agenda() {
+  const items = R.actionsOuvertes().map(a => ({ date: a.ech, txt: a.objet, qui: a.f ? R.fondsById[a.f].court : R.pipeById[a.pipe].nom, kind: "Action", prio: a.prio }))
+    .concat(D.echeances.map(e => ({ date: e.date, txt: e.objet, qui: e.f.map(x => R.fondsById[x].court).join(", "), kind: "Échéance", statut: e.statut })))
+    .filter(x => { const n = R.jours(D.meta.aujourdhui, x.date); return n >= 0 && n <= 13; })
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return '<section class="panel"><h2 class="lbl">Agenda à 14 jours</h2>' + [["Cette semaine", 0, 6], ["Semaine suivante", 7, 13]].map(g => {
+    const l = items.filter(x => { const n = R.jours(D.meta.aujourdhui, x.date); return n >= g[1] && n <= g[2]; });
+    if (!l.length) return "";
+    return '<p class="ag-g">' + g[0] + '</p>' + l.map(x => '<div class="ag"><b>' + R.dateCourte(x.date) + '</b><div><p>' + R.t(x.txt) + '</p>' +
+      '<p class="muted">' + R.esc(x.kind + " - " + x.qui) + (x.prio ? ' - <span class="prio-' + x.prio + '">' + R.esc("priorité " + x.prio.toLowerCase()) + '</span>' : '') +
+      (x.statut ? ' - <span class="' + (x.statut === "À risque" || x.statut === "Non lancé" ? "st-risk" : "") + '">' + R.esc(x.statut) + '</span>' : '') + '</p></div></div>').join("");
+  }).join("") + '<p class="note"><button type="button" class="lk" data-vue-go="echeancier">Échéancier complet</button></p></section>';
+}
+
+function vAujourdhui() {
+  const i = st.i, pts = R.pointsAttention(i);
+  const dep = pts.filter(x => R.statut(x, i) === "DEP"), man = pts.filter(x => R.statut(x, i) === "MAN");
+  const surv = pts.filter(x => R.statut(x, i) === "SURV").sort((a, b) => {
+    const pa = R.projection(a, i, "lim"), pb = R.projection(b, i, "lim");
+    return (pa.mois === undefined ? 1e9 : pa.mois) - (pb.mois === undefined ? 1e9 : pb.mois);
+  });
+  const hautes = R.actionsOuvertes().filter(a => a.prio === "Haute");
+  const sansAction = surv.filter(x => !x.act).length;
+  const proches = D.indicateurs.filter(x => R.projection(x, i, "lim").code === "proche").length;
+  const ech7 = R.echeancesDans(7).length;
+  const lead = "Au " + R.date(K.arrete()) + " : " + nb(dep.length, "aucun dépassement", "dépassement", "dépassements") + ", " +
+    nb(man.length, "aucune donnée manquante", "donnée manquante", "données manquantes") + " et " + nb(surv.length, "aucun indicateur", "indicateur", "indicateurs") + " sous surveillance. " +
+    (hautes.length ? hautes.length + " " + K.pl(hautes.length, "action de priorité haute arrive", "actions de priorité haute arrivent") + " à échéance d'ici le " + R.date(hautes[hautes.length - 1].ech) + ". " : "") +
+    (sansAction ? sansAction + " " + K.pl(sansAction, "indicateur sous surveillance n'a", "indicateurs sous surveillance n'ont") + " aucune action ouverte." : "");
+  const figs = '<div class="summary">' +
+    '<button type="button" class="fig" data-filtre="DEP"><b class="c-DEP">' + dep.length + '</b><span>' + K.pl(dep.length, "Dépassement", "Dépassements") + '</span></button>' +
+    '<button type="button" class="fig" data-filtre="MAN"><b>' + man.length + '</b><span>' + K.pl(man.length, "Donnée manquante", "Données manquantes") + '</span></button>' +
+    '<button type="button" class="fig" data-filtre="SURV"><b class="c-SURV">' + surv.length + '</b><span>Sous surveillance</span></button>' +
+    '<div class="fig"><b>' + sansAction + '</b><span>Sans action ouverte</span></div>' +
+    '<button type="button" class="fig" data-vue-go="synthese"><b>' + proches + '</b><span>' + K.pl(proches, "Limite projetée à 3 mois", "Limites projetées à 3 mois") + '</span></button>' +
+    '<button type="button" class="fig" data-vue-go="echeancier"><b>' + ech7 + '</b><span>' + K.pl(ech7, "Échéance à 7 jours", "Échéances à 7 jours") + '</span></button></div>';
+  return '<p class="lead">' + R.t(lead) + '</p>' + figs + '<div class="board"><div class="col">' +
+    lane("Escalade", "Limite ou seuil franchi. Qualifier le dépassement (actif ou passif), informer la Direction générale, inscrire au registre.", dep, "DEP") +
+    lane("Données à obtenir", "Indicateur non calculable à l'arrêté. Relancer la source ; statut prudent tant que la donnée manque.", man, "MAN") +
+    '</div><div class="col">' +
+    lane("Sous surveillance", "Seuil d'alerte franchi, limite respectée. Classés par date projetée de franchissement de la limite.", surv, "SURV") +
+    '</div><div class="col c3">' + ordreDuJour(pts) + agenda() + '</div></div>';
+}
+
+/* ------------------------------------------------------------ Fonds */
+function resume(id) {
+  const c = R.compte(st.i, [id]), parts = [];
+  if (c.DEP) parts.push(c.DEP + " " + K.pl(c.DEP, "dépassement", "dépassements"));
+  if (c.MAN) parts.push(c.MAN + " " + K.pl(c.MAN, "donnée manquante", "données manquantes"));
+  if (c.SURV) parts.push(c.SURV + " sous surveillance");
+  return parts.length ? parts.join(", ") : "Tous les indicateurs sont conformes";
+}
+
+function liste() {
+  const fonds = D.fonds.map(f => '<li><button type="button" class="fitem" data-sel="' + f.id + '" aria-current="' + (loc.sel === f.id) + '">' +
+    '<b>' + R.esc(f.nom) + '</b><span class="muted">' + R.esc(f.nature.split(",")[0]) + '</span>' +
+    '<span>' + K.C(R.statutFonds(f.id, st.i), true) + '</span><span class="muted">' + R.esc(resume(f.id)) + '</span></button></li>').join("");
+  const dossiers = nat => D.pipeline.filter(nat).map(p => '<li><button type="button" class="fitem" data-sel="' + p.id + '" aria-current="' + (loc.sel === p.id) + '">' +
+    '<b>' + R.esc(p.nom) + '</b><span class="muted">' + R.esc(p.nature) + ', étape ' + (p.cur + 1) + ' sur ' + p.etapes.length + '</span>' +
+    '<div class="seg" aria-hidden="true">' + p.etapes.map((e, k) => '<i class="' + (k < p.cur ? "done" : k === p.cur ? "cur" : "") + '"></i>').join("") + '</div></button></li>').join("");
+  return '<nav class="flist" aria-label="Fonds et dossiers"><section><h2 class="lbl">Fonds gérés</h2><ul>' + fonds + '</ul></section>' +
+    '<section><h2 class="lbl">Onboarding</h2><ul>' + dossiers(p => p.nature === "Onboarding") + '</ul></section>' +
+    '<section><h2 class="lbl">Due diligence et IRP</h2><ul>' + dossiers(p => p.nature !== "Onboarding") + '</ul></section></nav>';
+}
+
+function vueFonds(f) {
+  const i = st.i;
+  const doms = '<div class="doms" role="group" aria-label="Filtrer par domaine">' +
+    '<button type="button" class="dom" data-dom="" aria-pressed="' + (loc.dom === "") + '"><span class="k">Tous</span>' + K.C(R.statutFonds(f.id, i)) +
+    '<span class="ct">' + R.indicateursDe(f.id).length + ' indicateurs</span></button>' +
+    D.domaines.map(d => {
+      const n = R.indicateursDe(f.id, d.id).length;
+      return '<button type="button" class="dom" data-dom="' + d.id + '" aria-pressed="' + (loc.dom === d.id) + '"' + (n ? '' : ' disabled') + '><span class="k">' + R.esc(d.nom) + '</span>' +
+        K.C(R.statutDomaine(f.id, d.id, i)) + '<span class="ct">' + (n ? n + ' ' + K.pl(n, "indicateur", "indicateurs") : "Aucun") + '</span></button>';
+    }).join("") + '</div>';
+  const l = R.indicateursDe(f.id, loc.dom || null).slice()
+    .sort((a, b) => R.STATUTS[R.statut(b, i)].rang - R.STATUTS[R.statut(a, i)].rang || D.domaines.findIndex(d => d.id === a.d) - D.domaines.findIndex(d => d.id === b.d));
+  const rows = l.map(x => {
+    const open = loc.open.has(x.id), p = R.projection(x, i, "lim");
+    const pc = p.code === "franchi" ? "c-DEP" : p.code === "proche" ? "c-SURV" : "muted";
+    return '<tr class="go" data-row="' + x.id + '" tabindex="0" aria-expanded="' + open + '"><td class="nw">' + K.C(R.statut(x, i), true) + '</td>' +
+      '<td class="nw muted">' + R.esc(R.domById[x.d].nom) + '</td><td>' + R.t(x.lib) + '</td><td class="n">' + R.val(R.valeur(x, i), x.u) + '</td>' +
+      '<td class="n">' + K.seuil(x, "al") + '</td><td class="n">' + K.seuil(x, "lim") + '</td>' +
+      '<td><div class="ubrow">' + ubar(x) + '<span class="muted">' + part(x) + '</span></div></td>' +
+      '<td class="nw ' + pc + '">' + R.esc(libProj(p)) + '</td><td>' + K.spark(x, 84, 22) + '</td></tr>' +
+      (open ? '<tr class="det"><td colspan="9">' + K.article(x) + '</td></tr>' : '');
+  }).join("");
+  const acts = R.actionsOuvertes([f.id]).filter(a => a.f === f.id);
+  const echs = D.echeances.filter(e => e.f.indexOf(f.id) >= 0 && R.jours(D.meta.aujourdhui, e.date) >= 0);
+  return '<div class="panel"><div class="fh"><div><h1>' + R.esc(f.nom) + '</h1><p class="muted">' + R.t(f.nature) + '</p></div>' +
+    '<div class="fst">' + K.C(R.statutFonds(f.id, i), true) + ' <span class="muted">au ' + R.date(K.arrete()) + '</span></div></div>' +
+    '<dl class="facts"><div><dt>VL</dt><dd>' + R.val(f.encours, "EUR m") + ' au ' + R.date(f.dateVl) + '</dd></div>' +
+    '<div><dt>Fréquence de VL</dt><dd>' + R.esc(f.freq) + ', ' + R.esc(f.devise) + '</dd></div>' +
+    '<div><dt>Liquidité</dt><dd>' + R.t(f.liquidite) + '</dd></div>' +
+    '<div><dt>Situation</dt><dd>' + R.esc(resume(f.id)) + '</dd></div></dl>' +
+    doms + '<div class="scroll"><table class="list"><thead><tr><th>Statut</th><th>Domaine</th><th>Indicateur</th><th class="n">Valeur</th><th class="n">Alerte</th>' +
+    '<th class="n">Limite</th><th>Marge consommée</th><th>Limite projetée</th><th>Évolution</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Du plus grave au moins grave. Marge consommée : trait plein = limite, pointillé = seuil d'alerte. Limite projetée : prolongation linéaire de la tendance, indicative. Sélectionner une ligne pour le détail.") + '</p></div>' +
+    '<div class="sub"><div class="panel"><h2 class="lbl">Liquidité</h2>' + K.liqBlock(f.id) + '</div>' +
+    '<div class="panel"><h2 class="lbl">Actions du fonds</h2>' + (acts.length ? '<ol class="plain">' + acts.map(K.todo).join("") + '</ol>' : '<p class="muted">Aucune action ouverte.</p>') +
+    '<h2 class="lbl" style="margin-top:18px">Échéances du fonds</h2><ol class="plain">' + echs.map(K.echItem).join("") + '</ol></div></div>';
+}
+
+function vueDossier(p) {
+  const acts = D.actions.filter(a => a.pipe === p.id);
+  return '<div class="panel"><div class="fh"><div><h1>' + R.esc(p.nom) + '</h1><p class="muted">' + R.esc(p.nature) + '</p></div>' +
+    '<div class="fst">' + R.esc("Étape " + (p.cur + 1) + " sur " + p.etapes.length) + '</div></div>' +
+    '<ol class="steps">' + p.etapes.map((e, k) => '<li class="' + (k < p.cur ? "done" : k === p.cur ? "cur" : "") + '"><span>Étape ' + (k + 1) + '</span>' + R.esc(e) + '</li>').join("") + '</ol>' +
+    '<dl class="facts"><div><dt>Prochaine étape</dt><dd>' + R.esc(p.prochaine) + '</dd></div>' +
+    '<div><dt>Échéance</dt><dd>' + R.date(p.ech) + ', ' + R.esc(R.delai(p.ech)) + '</dd></div>' +
+    '<div><dt>Point d\'attention</dt><dd>' + R.t(p.point) + '</dd></div>' +
+    '<div><dt>Dossier</dt><dd>' + (p.url ? '<a href="' + p.url + '" target="_blank" rel="noopener">Ouvrir le dossier</a>' : '<span class="muted">Pas encore de studio</span>') + '</dd></div></dl>' +
+    (acts.length ? '<h2 class="lbl" style="margin-top:18px">Actions</h2><ol class="plain">' + acts.map(K.todo).join("") + '</ol>' : '') +
+    '<p class="note">' + R.t("Les indicateurs seront paramétrés après validation par le comité des risques ; le dossier prendra alors la même fiche que les fonds gérés.") + '</p></div>';
+}
+
+function vFonds() {
+  if (!loc.sel) {
+    let best = D.fonds[0].id, rang = -1;
+    D.fonds.forEach(f => { const r = R.STATUTS[R.statutFonds(f.id, st.i)].rang; if (r > rang) { rang = r; best = f.id; } });
+    loc.sel = best;
+  }
+  const f = R.fondsById[loc.sel];
+  return '<div class="c2">' + liste() + '<div class="main">' + (f ? vueFonds(f) : vueDossier(R.pipeById[loc.sel])) + '</div></div>';
+}
+
+/* ------------------------------------------------------------ Synthèse */
+function prose() {
+  const i = st.i, c = R.compte(i), pts = R.pointsAttention(i);
+  const dep = pts.filter(x => R.statut(x, i) === "DEP"), man = pts.filter(x => R.statut(x, i) === "MAN");
+  let a = "Au " + R.dateLongue(K.arrete()) + ", " + D.meta.entite + " suit " + D.fonds.length + " fonds gérés au travers de " + c.total + " indicateurs. ";
+  a += dep.length ? (dep.length > 1 ? dep.length + " limites sont franchies : " : "Une limite est franchie : ") +
+    dep.map(x => minus(x.lib) + " " + R.de(R.fondsById[x.f].nom) + " (" + R.val(R.valeur(x, i), x.u) + " " + phraseSeuil(x) + ")").join(" ; ") + ". " : "Aucune limite n'est franchie. ";
+  if (man.length) a += (man.length > 1 ? man.length + " données manquent : " : "Une donnée manque : ") + man.map(x => minus(x.lib) + " " + R.de(R.fondsById[x.f].nom)).join(" ; ") + ". ";
+  const proj = D.indicateurs.map(x => ({ x, p: R.projection(x, i, "lim") })).filter(o => o.p.code === "proche").sort((u, v) => u.p.mois - v.p.mois);
+  a += (c.SURV > 1 ? c.SURV + " indicateurs ont franchi leur seuil d'alerte" : c.SURV === 1 ? "Un indicateur a franchi son seuil d'alerte" : "Aucun indicateur n'a franchi son seuil d'alerte") +
+    (proj.length ? " ; au rythme observé, " + nb(proj.length, "", "limite serait atteinte", "limites seraient atteintes") + " d'ici 3 mois, la plus proche vers " + proj[0].p.lib + " (" + minus(proj[0].x.lib) + " " + R.de(R.fondsById[proj[0].x.f].nom) + ")." : ".");
+  const liq = D.fonds.map(f => {
+    const cfg = R.copieLiquidite(f.id), s = R.SCENARIOS.find(s => (R.liquidite(cfg, s.k).couverture || 9) < 1);
+    return s ? { f, s, v: R.liquidite(cfg, s.k).couverture } : null;
+  }).filter(Boolean).sort((u, v) => R.SCENARIOS.indexOf(u.s) - R.SCENARIOS.indexOf(v.s));
+  const et = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.length - 1] : l[0];
+  const parScen = R.SCENARIOS.map(sc => ({ sc, l: liq.filter(o => o.s === sc) })).filter(g => g.l.length);
+  let b = liq.length ? "La couverture de liquidité passe sous 1,00x " + et(parScen.map(g => (g.sc.k === "base" ? "dès le scénario de base" : "en scénario " + g.sc.lib.toLowerCase()) +
+    " pour " + et(g.l.map(o => o.f.nom + " (" + R.val(o.v, "x") + ")")))) + ". " : "La couverture de liquidité reste au-dessus de 1,00x dans tous les scénarios. ";
+  const opn = R.reverse(R.copieLiquidite("OPN"));
+  if (opn.type === "ouvert" && !opn.gateProtege) b += "Pour " + R.fondsById.OPN.nom + ", les ressources ne couvrent que " + R.val(opn.rmax, "% VL") + " de rachats par fenêtre, sous la gate de " + R.val(opn.gate, "% VL") + ". ";
+  const onb = D.pipeline.filter(p => p.nature === "Onboarding");
+  b += nb(onb.length, "Aucun fonds n'est", "fonds est", "fonds sont") + " en onboarding ; le comité du " + R.date(comite.date) + " doit valider les paramètres de liquidité du Nourricier Partners Group.";
+  return '<section class="panel"><h2 class="lbl">Synthèse rédigée</h2><p class="prose">' + R.t(a) + '</p><p class="prose">' + R.t(b) + '</p>' +
+    '<p class="note">' + R.t("Texte généré à partir des indicateurs, des projections et des scénarios de liquidité ; à relire avant diffusion.") + '</p></section>';
+}
+
+function matrice() {
+  const i = st.i;
   const head = '<thead><tr><th scope="col">Fonds</th>' + D.domaines.map(d => '<th scope="col">' + R.esc(d.nom) + '</th>').join("") + '<th scope="col">Ensemble</th></tr></thead>';
-  const rows = D.fonds.map((f, r) => '<tr><th scope="row"><b>' + R.esc(f.nom) + '</b><span>' + R.esc(f.nature.split(",")[0]) + '</span></th>' +
-    D.domaines.map((d, k) => {
-      const code = R.statutDomaine(f.id, d.id, i), on = f.id === loc.f && d.id === loc.d;
-      return '<td><button type="button" class="cell' + (code === "NA" ? " na" : "") + '" data-f="' + f.id + '" data-d="' + d.id + '" data-r="' + r + '" data-k="' + k + '"' +
-        ' aria-pressed="' + on + '" tabindex="' + (on ? 0 : -1) + '" aria-label="' + R.esc(f.court + ", " + d.nom + " : " + R.STATUTS[code].lib) + '">' + K.C(code) + '</button></td>';
+  const rows = D.fonds.map(f => '<tr><th scope="row"><b>' + R.esc(f.nom) + '</b><span>' + R.esc(f.nature.split(",")[0]) + '</span></th>' +
+    D.domaines.map(d => {
+      const code = R.statutDomaine(f.id, d.id, i);
+      return '<td>' + (code === "NA" ? '<span class="cell na">' + K.C(code) + '</span>' :
+        '<button type="button" class="cell" data-fiche="' + f.id + '" data-dom="' + d.id + '" aria-label="' + R.esc(f.court + ", " + d.nom + " : " + R.STATUTS[code].lib + ". Ouvrir la fiche") + '">' + K.C(code) + '</button>') + '</td>';
     }).join("") + '<td class="pend">' + K.C(R.statutFonds(f.id, i)) + '</td></tr>').join("");
   const onb = D.pipeline.filter(p => p.nature === "Onboarding").map(p => '<tr><th scope="row"><b>' + R.esc(p.nom) + '</b><span>Onboarding</span></th>' +
     '<td colspan="8" class="pend">' + R.t("Indicateurs paramétrés après le comité des risques. Étape en cours : " + p.etapes[p.cur].toLowerCase() + " (" + (p.cur + 1) + " sur " + p.etapes.length + ").") + '</td></tr>').join("");
-
-  const f = R.fondsById[loc.f], d = R.domById[loc.d], l = R.indicateursDe(loc.f, loc.d);
-  const det = '<div class="detail"><div class="dh"><h2>' + R.esc(f.nom) + ' - ' + R.esc(d.nom) + '</h2>' +
-    '<span>' + K.C(R.statutDomaine(loc.f, loc.d, i), true) + ' <span class="muted">au ' + R.date(K.arrete()) + ', ' + l.length + ' ' + K.pl(l.length, "indicateur", "indicateurs") + '</span></span></div>' +
-    l.map(K.article).join("") + '</div>';
-
-  h += '<div class="layout"><div class="panel"><h2 class="lbl">Matrice des risques</h2>' +
-    '<div class="scroll"><table class="mx">' + head + '<tbody>' + rows + '<tr class="grp"><th colspan="9">En cours d\'onboarding</th></tr>' + onb + '</tbody></table></div>' +
-    '<p class="legend">' + R.t("Statut le plus défavorable des indicateurs du domaine. Flèches du clavier pour se déplacer dans la matrice.") + '</p>' + det + '</div>' +
-    '<aside class="rail"><section><h2 class="lbl">À traiter</h2><ol class="plain">' + acts.map(K.todo).join("") + '</ol></section>' +
-    '<section><h2 class="lbl">Échéances à 30 jours</h2><ol class="plain">' + ech.map(K.echItem).join("") + '</ol>' +
-    '<p class="note"><button type="button" class="lk" data-vue-go="echeancier">Échéancier complet</button></p></section></aside></div>';
-  return h;
+  return '<section class="panel"><h2 class="lbl">Matrice des risques</h2><div class="scroll"><table class="mx">' + head + '<tbody>' + rows +
+    '<tr class="grp"><th colspan="9">En cours d\'onboarding</th></tr>' + onb + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Statut le plus défavorable des indicateurs du domaine. Sélectionner une case pour ouvrir la fiche du fonds sur ce domaine.") + '</p></section>';
 }
 
-function choisir(f, d) {
-  loc.f = f; loc.d = d; K.rendu();
-  const c = document.querySelector('.cell[aria-pressed="true"]'); if (c) c.focus();
+function frise() {
+  const i = st.i, debut = K.arrete(), fin = R.ajouterMois(debut, HORIZON), H = R.jours(debut, fin);
+  const pos = iso => Math.max(0, Math.min(100, R.jours(debut, iso) / H * 100)).toFixed(2) + "%";
+  const ABR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+  const mois = [];
+  let d = new Date(Date.parse(debut)); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+  while (d.toISOString().slice(0, 10) < fin) { mois.push(d.toISOString().slice(0, 10)); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); }
+  const now = R.jours(debut, D.meta.aujourdhui) >= 0 ? '<span class="now" style="left:' + pos(D.meta.aujourdhui) + '"></span>' : '';
+  const l = D.indicateurs.map(x => ({ x, al: R.projection(x, i, "al"), lim: R.projection(x, i, "lim") }))
+    .filter(o => o.lim.code === "franchi" || enHorizon(o.lim, HORIZON))
+    .sort((u, v) => (u.lim.code === "franchi" ? -1 : u.lim.mois) - (v.lim.code === "franchi" ? -1 : v.lim.mois));
+  const inH = q => (q.code === "proche" || q.code === "lointain") && q.date <= fin;
+  const lignes = l.map(o => {
+    const limDate = o.lim.code === "franchi" ? debut : o.lim.date;
+    return '<div class="g-row" data-g="' + o.x.id + '" role="button" tabindex="0" aria-label="' + R.esc(R.fondsById[o.x.f].court + ", " + o.x.lib + " : ouvrir la fiche") + '">' +
+      '<div class="g-lab"><span class="muted">' + R.esc(R.fondsById[o.x.f].court) + '</span>' + R.t(o.x.lib) + '</div>' +
+      '<div class="g-tr">' + mois.map(m => '<span class="mo" style="left:' + pos(m) + '"></span>').join("") + now +
+      '<span class="run" style="width:' + pos(limDate) + '"></span>' +
+      (inH(o.al) ? '<span class="dot al" style="left:' + pos(o.al.date) + '"></span>' : '') + '<span class="dot lim" style="left:' + pos(limDate) + '"></span></div>' +
+      '<div class="g-when">' + (o.lim.code === "franchi" ? '<span class="c-DEP">Franchie</span>' : '<span class="c-SURV">' + R.esc(o.lim.lib.replace(/ \d{4}$/, "")) + '</span>') + '</div></div>';
+  }).join("");
+  const axe = '<div class="g-row g-ax" aria-hidden="true"><div></div><div class="g-axis">' + mois.map(m => '<span style="left:' + pos(m) + '">' + ABR[Number(m.slice(5, 7)) - 1] + '</span>').join("") + '</div><div></div></div>';
+  return '<section class="panel"><div class="gh"><h2 class="lbl">Limites franchies ou projetées à 6 mois</h2>' +
+    '<div class="leg"><span><i class="run"></i>Piste avant la limite</span><span><i class="al"></i>Alerte</span><span><i class="lim"></i>Limite</span><span>Pointillé : aujourd\'hui</span></div></div>' +
+    (l.length ? axe + lignes : '<p class="muted">Aucune limite franchie ni projetée sur l\'horizon.</p>') +
+    '<p class="note">' + R.t("Prolongation linéaire de la tendance sur les arrêtés disponibles. Indicative : confiance faible au-delà de 3 mois, biaisée pour les séries trimestrielles et les VL lissées.") + '</p></section>';
+}
+
+function couverture() {
+  const rows = D.fonds.map(f => {
+    const cfg = R.copieLiquidite(f.id), rv = R.reverse(cfg);
+    return '<tr><td>' + fiche(f.id, R.esc(f.court)) + '</td>' + R.SCENARIOS.map(s => { const v = R.liquidite(cfg, s.k).couverture; return '<td class="n' + (v < 1 ? ' c-DEP' : '') + '">' + R.val(v, "x") + '</td>'; }).join("") +
+      '<td class="n">' + R.esc(rv.type === "ouvert" ? R.val(rv.rmax, "% VL") : R.val(rv.dmax, "%")) + '</td></tr>';
+  }).join("");
+  return '<section class="panel"><h2 class="lbl">Couverture de liquidité</h2><div class="scroll"><table class="list"><thead><tr><th>Fonds</th>' +
+    R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") + '<th class="n">Reverse</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Reverse : rachats par fenêtre (fonds ouverts) ou défaut des investisseurs (fonds fermé) qui ramènent la couverture à 1,00x.") + '</p>' +
+    '<p class="note"><button type="button" class="lk" data-vue-go="liquidite">Scénarios détaillés</button></p></section>';
+}
+
+function vSynthese() {
+  return '<div class="view-h"><h1>Synthèse</h1><span class="muted">' + R.t("Vue comité et Direction générale, au " + R.date(K.arrete())) + '</span></div>' +
+    '<div class="main">' + prose() + matrice() + '<div class="syn2">' + frise() + couverture() + '</div></div>';
+}
+
+/* ------------------------------------------------------------ navigation */
+function versFiche(fid, dom) { loc.sel = fid; loc.dom = dom || ""; K.vue("fonds"); }
+function basculer(id) {
+  if (loc.open.has(id)) loc.open.delete(id); else loc.open.add(id);
+  K.rendu();
+  const r = document.querySelector('tr[data-row="' + id + '"]'); if (r) r.focus();
 }
 
 K.boot({
-  nom: "Console matrice", accueil: "Pilotage", accueilHtml,
-  ouvrir(id) { const x = R.indById[id]; loc.f = x.f; loc.d = x.d; },
+  nom: "Fundcraft France",
+  vues: [["aujourdhui", "Aujourd'hui", vAujourdhui], ["fonds", "Fonds", vFonds], ["synthese", "Synthèse", vSynthese], "liquidite", "indicateurs", "echeancier", "studios"],
+  cibleOuverture: "dans la fiche du fonds",
+  pied: "Risk Studio. Données de démonstration, valeurs fictives. Les projections sont indicatives ; les paramètres de liquidité marqués « à confirmer » doivent être validés sur la documentation des fonds.",
+  ouvrir(id) { const x = R.indById[id]; loc.sel = x.f; loc.dom = ""; loc.open.add(id); return "fonds"; },
+  dossier(id) { loc.sel = id; loc.dom = ""; K.vue("fonds"); },
   click(e) {
-    const cell = e.target.closest(".cell[data-f]");
-    if (!cell) return false;
-    if (!cell.classList.contains("na")) choisir(cell.dataset.f, cell.dataset.d);
-    return true;
+    const fi = e.target.closest("[data-fiche]"); if (fi) { versFiche(fi.dataset.fiche, fi.dataset.dom); return true; }
+    const s = e.target.closest("[data-sel]");
+    if (s) { if (loc.sel !== s.dataset.sel) { loc.sel = s.dataset.sel; loc.dom = ""; } K.rendu(); return true; }
+    const d = e.target.closest("[data-dom]"); if (d) { loc.dom = d.dataset.dom; K.rendu(); return true; }
+    const r = e.target.closest("tr[data-row]"); if (r) { basculer(r.dataset.row); return true; }
+    const g = e.target.closest("[data-g]"); if (g) { K.ouvrir(g.dataset.g); return true; }
+    return false;
   },
   key(e) {
-    const cell = e.target.closest(".cell[data-f]");
-    const mv = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] }[e.key];
-    if (!cell || !mv) return false;
-    e.preventDefault();
-    const r = Math.max(0, Math.min(D.fonds.length - 1, Number(cell.dataset.r) + mv[0]));
-    const k = Math.max(0, Math.min(D.domaines.length - 1, Number(cell.dataset.k) + mv[1]));
-    const next = document.querySelector('.cell[data-r="' + r + '"][data-k="' + k + '"]');
-    if (!next) return true;
-    if (next.classList.contains("na")) next.focus(); else choisir(next.dataset.f, next.dataset.d);
-    return true;
+    if (e.key !== "Enter" && e.key !== " ") return false;
+    const r = e.target.closest("tr[data-row]"); if (r) { e.preventDefault(); basculer(r.dataset.row); return true; }
+    const g = e.target.closest("[data-g]"); if (g) { e.preventDefault(); K.ouvrir(g.dataset.g); return true; }
+    return false;
   }
 });
 })();
