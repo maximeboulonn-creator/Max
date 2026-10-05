@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Décisions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*@KITCSS*/
+/* Console 3 - décisions. Question : que dois-je traiter, escalader ou soumettre au comité ?
+   Gestion par exception : seuls les indicateurs hors statut conforme apparaissent,
+   rangés par niveau de réponse, avec l'action liée ou son absence. */
+.lead { margin: 18px 0 16px; font-size: 10pt; max-width: 120ch; }
+.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.col { display: grid; gap: 18px; min-width: 0; }
+.lane-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.lane-h h2 { margin: 0; font-size: 10pt; }
+.lane-h .ct { font-size: 14pt; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lane-d { margin: 2px 0 8px; color: var(--muted); }
+.dec { padding: 10px 0; border-top: 1px solid var(--rule); }
+.dec p { margin: 0 0 3px; }
+.dec .v { font-size: 12pt; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dec .noact { color: var(--warn); }
+.dec .it { margin-top: 6px; border-top: 1px dashed var(--rule); }
+.agenda ol { margin: 0; padding-left: 18px; }
+.agenda li { padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.agenda li:last-child { border-bottom: 0; }
+.agenda li p { margin: 0 0 2px; }
+.kind { font-weight: 700; }
+.ag-g { margin: 12px 0 4px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ag-g:first-of-type { margin-top: 0; }
+.ag { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.ag:last-child { border-bottom: 0; }
+.ag b { font-variant-numeric: tabular-nums; }
+.ag p { margin: 0; }
+@media (max-width: 1150px) { .board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .col.c3 { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 760px) { .board, .col.c3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>/*@CORE*/</script>
+<script>/*@KIT*/</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
+const loc = { open: new Set() };
+const comite = D.echeances.find(e => /Comité des risques/.test(e.objet));
+
+function phraseValeur(x) {
+  const i = st.i;
+  if (x.lim === null) return R.val(R.valeur(x, i), x.u) + " pour une alerte à " + K.seuil(x, "al");
+  return (x.sens === "max" ? "pour un plafond de " : "pour un plancher de ") + K.seuil(x, "lim");
+}
+
+function item(x, mode) {
+  const i = st.i, code = R.statut(x, i), a = x.act ? R.actById[x.act] : null, open = loc.open.has(x.id);
+  let proj = "";
+  if (mode === "SURV") {
+    const p = R.projection(x, i, "lim");
+    proj = '<p class="muted">' + R.t(p.code === "proche" || p.code === "lointain" ? "Limite projetée : " + p.lib :
+      p.code === "sans" ? "Pas de limite : seuil d'alerte seul" : "Limite projetée : aucun franchissement au rythme actuel") + '</p>';
+  }
+  return '<li class="dec" data-focus="' + x.id + '"><p class="muted">' + R.esc(R.fondsById[x.f].court + " - " + R.domById[x.d].nom + " - " + x.type) + '</p>' +
+    '<p><b>' + R.t(x.lib) + '</b></p>' +
+    '<p>' + (code === "MAN" ? '<span class="c-MAN">Non reçue au ' + R.date(K.arrete()) + '</span>' :
+      '<span class="v c-' + code + '">' + R.val(R.valeur(x, i), x.u) + '</span> <span class="muted">' + R.t(x.lim === null ? "alerte à " + K.seuil(x, "al") + ", sans limite" : phraseValeur(x)) + '</span>') + '</p>' +
+    proj +
+    (a ? '<p>' + R.t("Action : " + a.objet) + ' <span class="muted">' + R.esc("(" + a.resp + ", " + R.dateCourte(a.ech) + ", " + R.delai(a.ech) + ")") + '</span></p>'
+       : '<p class="noact">Aucune action ouverte</p>') +
+    '<button type="button" class="lk" data-tog="' + x.id + '" aria-expanded="' + open + '">' + (open ? "Masquer le détail" : "Détail") + '</button>' +
+    (open ? K.article(x) : '') + '</li>';
+}
+
+function lane(titre, desc, l, mode) {
+  return '<section class="panel"><div class="lane-h"><h2>' + titre + '</h2><span class="ct' + (mode === "DEP" && l.length ? " c-DEP" : "") + '">' + l.length + '</span></div>' +
+    '<p class="lane-d">' + R.t(desc) + '</p>' +
+    (l.length ? '<ol class="plain">' + l.map(x => item(x, mode)).join("") + '</ol>' : '<p class="muted">Rien à traiter.</p>') + '</section>';
+}
+
+function ordreDuJour(pts) {
+  const i = st.i, lignes = [], vus = new Set();
+  pts.filter(x => R.statut(x, i) === "DEP").forEach(x => {
+    vus.add(x.id);
+    lignes.push(["Décision", "Dépassement : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + " (" + R.val(R.valeur(x, i), x.u) + " " + phraseValeur(x) + "). Qualification et plan de rétablissement."]);
+  });
+  pts.filter(x => R.statut(x, i) === "MAN").forEach(x => {
+    vus.add(x.id);
+    lignes.push(["Information", "Donnée manquante : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + "."]);
+  });
+  R.actionsOuvertes().filter(a => a.prio === "Haute" && a.ind && !vus.has(a.ind)).forEach(a => {
+    vus.add(a.ind);
+    lignes.push(["Décision", R.fondsById[a.f].nom + " : " + a.objet.charAt(0).toLowerCase() + a.objet.slice(1) + "."]);
+  });
+  pts.filter(x => R.statut(x, i) === "SURV" && !vus.has(x.id)).forEach(x => {
+    const p = R.projection(x, i, "lim");
+    if (p.code === "proche") lignes.push(["Information", "Trajectoire : " + x.lib.charAt(0).toLowerCase() + x.lib.slice(1) + " de " + R.fondsById[x.f].nom + ", limite projetée " + p.lib + "."]);
+  });
+  D.actions.filter(a => a.pipe).forEach(a => lignes.push(["Validation", R.pipeById[a.pipe].nom + " : " + a.objet.replace(/^Comité des risques : /, "").replace(/^./, c => c.toLowerCase()) + "."]));
+  return '<section class="panel agenda"><h2 class="lbl">' + R.esc("Ordre du jour proposé, comité des risques du " + R.date(comite.date)) + '</h2><ol>' +
+    lignes.map(l => '<li><p><span class="kind">' + l[0] + '.</span> ' + R.t(l[1]) + '</p></li>').join("") + '</ol>' +
+    '<p class="note">' + R.t("Construit à partir des dépassements, des données manquantes, des actions de priorité haute et des trajectoires qui atteignent la limite d'ici 3 mois.") + '</p></section>';
+}
+
+function agenda() {
+  const items = R.actionsOuvertes().map(a => ({ date: a.ech, txt: a.objet, qui: a.f ? R.fondsById[a.f].court : R.pipeById[a.pipe].nom, kind: "Action", prio: a.prio }))
+    .concat(D.echeances.map(e => ({ date: e.date, txt: e.objet, qui: e.f.map(x => R.fondsById[x].court).join(", "), kind: "Échéance", statut: e.statut })))
+    .filter(x => { const n = R.jours(D.meta.aujourdhui, x.date); return n >= 0 && n <= 60; })
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  const groupes = [["Cette semaine", 0, 6], ["Semaine suivante", 7, 13], ["Plus tard, à 60 jours", 14, 60]];
+  return '<section class="panel"><h2 class="lbl">Agenda</h2>' + groupes.map(g => {
+    const l = items.filter(x => { const n = R.jours(D.meta.aujourdhui, x.date); return n >= g[1] && n <= g[2]; });
+    if (!l.length) return "";
+    return '<p class="ag-g">' + g[0] + '</p>' + l.map(x => '<div class="ag"><b>' + R.dateCourte(x.date) + '</b><div><p>' + R.t(x.txt) + '</p>' +
+      '<p class="muted">' + R.esc(x.kind + " - " + x.qui) + (x.prio ? ' - <span class="prio-' + x.prio + '">' + R.esc("priorité " + x.prio.toLowerCase()) + '</span>' : '') +
+      (x.statut ? ' - <span class="' + (x.statut === "À risque" || x.statut === "Non lancé" ? "st-risk" : "") + '">' + R.esc(x.statut) + '</span>' : '') + '</p></div></div>').join("");
+  }).join("") + '</section>';
+}
+
+function accueilHtml() {
+  const i = st.i, pts = R.pointsAttention(i);
+  const dep = pts.filter(x => R.statut(x, i) === "DEP"), man = pts.filter(x => R.statut(x, i) === "MAN");
+  const surv = pts.filter(x => R.statut(x, i) === "SURV").sort((a, b) => {
+    const pa = R.projection(a, i, "lim"), pb = R.projection(b, i, "lim");
+    const ma = pa.mois === undefined ? 1e9 : pa.mois, mb = pb.mois === undefined ? 1e9 : pb.mois;
+    return ma - mb;
+  });
+  const hautes = R.actionsOuvertes().filter(a => a.prio === "Haute");
+  const sansAction = surv.filter(x => !x.act).length;
+  const nb = (n, zero, s1, sp) => n ? n + " " + K.pl(n, s1, sp) : zero;
+  const lead = "Au " + R.date(K.arrete()) + " : " + nb(dep.length, "aucun dépassement", "dépassement", "dépassements") + ", " +
+    nb(man.length, "aucune donnée manquante", "donnée manquante", "données manquantes") + " et " +
+    nb(surv.length, "aucun indicateur", "indicateur", "indicateurs") + " sous surveillance. " +
+    (hautes.length ? hautes.length + " " + K.pl(hautes.length, "action de priorité haute arrive", "actions de priorité haute arrivent") + " à échéance d'ici le " +
+      R.date(hautes[hautes.length - 1].ech) + ". " : "") +
+    (sansAction ? sansAction + " " + K.pl(sansAction, "indicateur sous surveillance n'a", "indicateurs sous surveillance n'ont") + " aucune action ouverte." : "");
+  return '<p class="lead">' + R.t(lead) + '</p><div class="board">' +
+    '<div class="col">' +
+    lane("Escalade", "Limite ou seuil franchi. Qualifier le dépassement (actif ou passif), informer la Direction générale, inscrire au registre.", dep, "DEP") +
+    lane("Données à obtenir", "Indicateur non calculable à l'arrêté. Relancer la source ; statut prudent tant que la donnée manque.", man, "MAN") +
+    '</div><div class="col">' +
+    lane("Sous surveillance", "Seuil d'alerte franchi, limite respectée. Classés par date projetée de franchissement de la limite.", surv, "SURV") +
+    '</div><div class="col c3">' + ordreDuJour(pts) + agenda() + '</div></div>';
+}
+
+K.boot({
+  nom: "Console décisions", accueil: "Décisions", accueilHtml,
+  ouvrir(id) { loc.open.add(id); },
+  click(e) {
+    const b = e.target.closest("[data-tog]");
+    if (!b) return false;
+    const id = b.dataset.tog;
+    if (loc.open.has(id)) loc.open.delete(id); else loc.open.add(id);
+    K.rendu();
+    const nb = document.querySelector('[data-tog="' + id + '"]'); if (nb) nb.focus();
+    return true;
+  }
+});
+})();
+</script>
+</body>
+</html>

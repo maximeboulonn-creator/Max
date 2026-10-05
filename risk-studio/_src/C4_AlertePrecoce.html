@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Alerte précoce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*@KITCSS*/
+/* Console 4 - alerte précoce. Question : qu'est-ce qui va casser, et quand ?
+   Chaque indicateur est lu comme une trajectoire : marge consommée, pente mensuelle,
+   date projetée d'atteinte du seuil d'alerte et de la limite, sur une frise à l'échelle. */
+.lead { margin: 18px 0 4px; font-size: 10pt; max-width: 120ch; }
+.caveat { margin: 0 0 16px; color: var(--muted); max-width: 140ch; }
+.stack { display: grid; gap: 18px; }
+.gh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 8px; }
+.gh h2 { margin: 0; }
+.leg { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 8pt; }
+.leg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.leg i.al { background: var(--warn); }
+.leg i.lim { background: var(--crit); }
+.leg i.run { border-radius: 0; width: 14px; height: 6px; background: var(--bar-soft); }
+.g-row { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr) 120px; gap: 12px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.g-row:hover { background: var(--hover); }
+.g-row:last-child { border-bottom: 0; }
+.g-lab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-lab .muted { margin-right: 4px; }
+.g-tr { position: relative; height: 18px; }
+.g-tr .run { position: absolute; left: 0; top: 6px; height: 6px; background: var(--bar-soft); }
+.g-tr .dot { position: absolute; top: 4px; width: 10px; height: 10px; border-radius: 50%; transform: translateX(-50%); }
+.g-tr .dot.al { background: var(--warn); }
+.g-tr .dot.lim { background: var(--crit); }
+.g-tr .now, .g-axis .now { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--muted); }
+.g-tr .mo { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--rule); }
+.g-row.g-ax { cursor: default; padding: 0 0 2px; }
+.g-row.g-ax:hover { background: none; }
+.g-axis { position: relative; height: 14px; color: var(--faint); font-size: 8pt; }
+.g-axis span { position: absolute; white-space: nowrap; padding-left: 3px; }
+.g-when { text-align: right; white-space: nowrap; }
+.ub { position: relative; width: 130px; height: 10px; background: var(--rule); }
+.ub .f { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar); }
+.ub .f.SURV { background: var(--warn); }
+.ub .f.DEP { background: var(--crit); }
+.ub .t100 { position: absolute; top: -3px; bottom: -3px; border-left: 2px solid var(--ink); }
+.ub .tal { position: absolute; top: -3px; bottom: -3px; border-left: 1px dashed var(--ink); }
+.tools2 { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+@media (max-width: 760px) {
+  .g-row { grid-template-columns: minmax(0, 1fr) 96px; }
+  .g-row .g-tr { grid-column: 1 / -1; grid-row: 2; }
+  .g-row.g-ax .g-axis { grid-column: 1 / -1; grid-row: 1; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>/*@CORE*/</script>
+<script>/*@KIT*/</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
+const loc = { fonds: "", vue: "risque", tri: "date", open: new Set() };
+const HORIZON_MOIS = 6;
+
+const projs = x => ({ al: R.projection(x, st.i, "al"), lim: R.projection(x, st.i, "lim") });
+const rangLim = p => p.code === "franchi" ? -1 : (p.code === "proche" || p.code === "lointain") ? p.mois : p.code === "aucun" ? 1e6 : p.code === "sans" ? 2e6 : 3e6;
+function libProj(p, court) {
+  if (p.code === "proche" || p.code === "lointain") return p.mois > 12 ? "Au-delà de 12 mois" : p.lib;
+  if (p.code === "aucun") return court ? "Aucun" : "Aucun franchissement projeté";
+  return p.lib;
+}
+function cls(p, cible) {
+  if (p.code === "franchi") return cible === "lim" ? "c-DEP" : "c-SURV";
+  return p.code === "proche" ? "c-SURV" : "muted";
+}
+
+function frise(liste) {
+  const debut = K.arrete(), fin = R.ajouterMois(debut, HORIZON_MOIS), H = R.jours(debut, fin);
+  const pos = iso => Math.max(0, Math.min(100, R.jours(debut, iso) / H * 100)).toFixed(2) + "%";
+  const mois = [];
+  let d = new Date(Date.parse(debut));
+  d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+  while (d.toISOString().slice(0, 10) < fin) { mois.push(d.toISOString().slice(0, 10)); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); }
+  const ABR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+  const nomMois = iso => ABR[Number(iso.slice(5, 7)) - 1];
+  const now = R.jours(debut, D.meta.aujourdhui) >= 0 ? '<span class="now" style="left:' + pos(D.meta.aujourdhui) + '"></span>' : '';
+  const lignes = liste.map(x => {
+    const p = projs(x), inH = q => (q.code === "proche" || q.code === "lointain") && q.date <= fin;
+    const limDate = p.lim.code === "franchi" ? debut : inH(p.lim) ? p.lim.date : null;
+    const run = limDate ? '<span class="run" style="width:' + pos(limDate) + '"></span>' : '';
+    const dots = (inH(p.al) ? '<span class="dot al" style="left:' + pos(p.al.date) + '" title="' + R.esc("Alerte " + p.al.lib) + '"></span>' : '') +
+      (limDate ? '<span class="dot lim" style="left:' + pos(limDate) + '" title="' + R.esc("Limite " + (p.lim.code === "franchi" ? "franchie" : p.lim.lib)) + '"></span>' : '');
+    const quand = p.lim.code === "franchi" ? '<span class="c-DEP">Limite franchie</span>' :
+      limDate ? '<span class="c-SURV">' + R.esc("Limite " + p.lim.lib.replace(/ \d{4}$/, "")) + '</span>' :
+      '<span class="muted">' + R.esc("Alerte " + p.al.lib.replace(/ \d{4}$/, "")) + '</span>';
+    return '<div class="g-row" data-g="' + x.id + '" role="button" tabindex="0" aria-label="' + R.esc(R.fondsById[x.f].court + ", " + x.lib + " : afficher le détail") + '"><div class="g-lab"><span class="muted">' + R.esc(R.fondsById[x.f].court) + '</span>' + R.t(x.lib) + '</div>' +
+      '<div class="g-tr">' + mois.map(m => '<span class="mo" style="left:' + pos(m) + '"></span>').join("") + now + run + dots + '</div><div class="g-when">' + quand + '</div></div>';
+  }).join("");
+  const axe = '<div class="g-row g-ax" aria-hidden="true"><div></div><div class="g-axis">' + mois.map(m => '<span style="left:' + pos(m) + '">' + nomMois(m) + '</span>').join("") +
+    '</div><div></div></div>';
+  return { lignes, axe };
+}
+
+function accueilHtml() {
+  const i = st.i;
+  const base = D.indicateurs.filter(x => !loc.fonds || x.f === loc.fonds);
+  const fin = R.ajouterMois(K.arrete(), HORIZON_MOIS);
+  const enRisque = base.filter(x => {
+    const p = projs(x), inH = q => (q.code === "proche" || q.code === "lointain") && q.date <= fin;
+    return p.lim.code === "franchi" || inH(p.lim) || inH(p.al);
+  }).sort((a, b) => {
+    const pa = projs(a), pb = projs(b);
+    const ka = pa.lim.code === "franchi" ? -1 : (pa.lim.date && pa.lim.date <= fin ? pa.lim.mois : 100 + (pa.al.mois || 0));
+    const kb = pb.lim.code === "franchi" ? -1 : (pb.lim.date && pb.lim.date <= fin ? pb.lim.mois : 100 + (pb.al.mois || 0));
+    return ka - kb;
+  });
+  const all = D.indicateurs.map(x => projs(x).lim);
+  const n3 = all.filter(p => p.code === "proche").length;
+  const n6 = all.filter(p => (p.code === "proche" || p.code === "lointain") && p.mois <= HORIZON_MOIS).length;
+  const nf = all.filter(p => p.code === "franchi").length;
+  const lead = "Au rythme observé jusqu'au " + R.date(K.arrete()) + ", " + n3 + " " + K.pl(n3, "limite serait atteinte", "limites seraient atteintes") + " d'ici 3 mois et " + n6 +
+    " d'ici 6 mois ; " + (nf ? nf + " " + K.pl(nf, "est déjà franchie", "sont déjà franchies") : "aucune n'est déjà franchie") + ".";
+  const fr = frise(enRisque);
+
+  const chipsF = '<div class="chips" role="group" aria-label="Filtrer par fonds"><span class="k">Fonds</span>' +
+    [["", "Tous"]].concat(D.fonds.map(f => [f.id, f.court])).map(c =>
+      '<button type="button" class="chip" data-lf="' + c[0] + '" aria-pressed="' + (loc.fonds === c[0]) + '">' + R.esc(c[1]) + '</button>').join("") + '</div>';
+  const chipsV = '<div class="chips" role="group" aria-label="Indicateurs affichés"><span class="k">Afficher</span>' +
+    [["risque", "Limite à 6 mois ou franchie"], ["tous", "Tous les indicateurs"]].map(c =>
+      '<button type="button" class="chip" data-lv="' + c[0] + '" aria-pressed="' + (loc.vue === c[0]) + '">' + c[1] + '</button>').join("") + '</div>';
+  const chipsT = '<div class="chips" role="group" aria-label="Tri"><span class="k">Trier par</span>' +
+    [["date", "Échéance projetée"], ["util", "Marge consommée"]].map(c =>
+      '<button type="button" class="chip" data-lt="' + c[0] + '" aria-pressed="' + (loc.tri === c[0]) + '">' + c[1] + '</button>').join("") + '</div>';
+
+  let l = base.slice();
+  if (loc.vue === "risque") l = l.filter(x => { const p = projs(x).lim; return p.code === "franchi" || ((p.code === "proche" || p.code === "lointain") && p.mois <= HORIZON_MOIS); });
+  l.sort(loc.tri === "date" ? (a, b) => rangLim(projs(a).lim) - rangLim(projs(b).lim)
+    : (a, b) => (R.utilisation(b, i) === null ? -1 : R.utilisation(b, i)) - (R.utilisation(a, i) === null ? -1 : R.utilisation(a, i)));
+  const rows = l.map(x => {
+    const p = projs(x), u = R.utilisation(x, i), ua = R.utilisationAlerte(x), code = R.statut(x, i), open = loc.open.has(x.id);
+    const pc = v => (Math.max(0, Math.min(v, 1.25)) / 1.25 * 100).toFixed(1) + "%";
+    const barre = u === null ? '<span class="muted">' + (x.lim === null ? "Sans limite" : "n.d.") + '</span>' :
+      '<div class="ub" role="img" aria-label="' + R.esc("Marge consommée : " + R.nombre(u * 100, 0) + " %") + '"><span class="f ' + code + '" style="width:' + pc(u) + '"></span>' +
+      (ua !== null ? '<span class="tal" style="left:' + pc(ua) + '"></span>' : '') + '<span class="t100" style="left:' + pc(1) + '"></span></div>';
+    const pente = p.lim.pente !== undefined ? p.lim.pente : R.pente(x, i);
+    return '<tr class="go" data-row="' + x.id + '" tabindex="0" aria-expanded="' + open + '"><td class="nw">' + R.esc(R.fondsById[x.f].court) + '</td><td>' + R.t(x.lib) + '</td>' +
+      '<td>' + barre + '</td><td class="n">' + (u === null ? "-" : R.nombre(u * 100, 0) + " %") + '</td>' +
+      '<td class="n c-' + code + '">' + R.val(R.valeur(x, i), x.u) + '</td><td class="n">' + K.seuil(x, "lim") + '</td>' +
+      '<td class="n muted">' + (pente === null || pente === undefined ? "-" : R.signe(pente, x.u)) + '</td>' +
+      '<td class="nw ' + cls(p.al, "al") + '">' + R.esc(libProj(p.al, true)) + '</td><td class="nw ' + cls(p.lim, "lim") + '">' + R.esc(libProj(p.lim, true)) + '</td>' +
+      '<td>' + K.spark(x, 84, 22) + '</td></tr>' + (open ? '<tr class="det"><td colspan="10">' + K.article(x) + '</td></tr>' : '');
+  }).join("");
+
+  return '<p class="lead">' + R.t(lead) + '</p>' +
+    '<p class="caveat">' + R.t("Méthode : pente des moindres carrés sur les arrêtés mensuels disponibles, quatre au plus. Projection indicative : elle ne capte ni rupture ni saisonnalité, et elle est biaisée pour les séries trimestrielles et les VL lissées. Niveau de confiance faible au-delà de 3 mois.") + '</p>' +
+    '<div class="stack"><section class="panel"><div class="gh"><h2 class="lbl">Franchissements projetés à 6 mois</h2>' +
+    '<div class="leg"><span><i class="run"></i>Piste avant la limite</span><span><i class="al"></i>Seuil d\'alerte</span><span><i class="lim"></i>Limite</span><span>Pointillé : aujourd\'hui</span></div></div>' +
+    chipsF + (enRisque.length ? fr.axe + fr.lignes : '<p class="muted">Aucun franchissement projeté sur l\'horizon pour ce périmètre.</p>') + '</section>' +
+    '<section class="panel"><h2 class="lbl">Distance aux limites</h2><div class="tools2">' + chipsV + chipsT + '</div>' +
+    '<div class="scroll"><table class="list"><thead><tr><th>Fonds</th><th>Indicateur</th><th>Marge consommée</th><th class="n">Part</th><th class="n">Valeur</th><th class="n">Limite</th>' +
+    '<th class="n">Pente par mois</th><th>Alerte projetée</th><th>Limite projetée</th><th>Évolution</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="10" class="muted">Aucun indicateur ne correspond.</td></tr>') + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Marge consommée : 100 % = limite atteinte (trait plein) ; trait pointillé = seuil d'alerte. Pour un plancher, rapport limite / valeur.") + '</p></section></div>';
+}
+
+function basculer(id) {
+  if (loc.open.has(id)) loc.open.delete(id); else loc.open.add(id);
+  K.rendu();
+  const r = document.querySelector('tr[data-row="' + id + '"]');
+  if (r) { r.focus(); if (loc.open.has(id)) r.scrollIntoView({ block: "nearest" }); }
+}
+
+/* depuis la frise : ouvre la ligne du tableau, au besoin en affichant tous les indicateurs */
+function voir(id) {
+  loc.open.add(id);
+  const p = projs(R.indById[id]).lim;
+  if (loc.vue === "risque" && !(p.code === "franchi" || ((p.code === "proche" || p.code === "lointain") && p.mois <= HORIZON_MOIS))) loc.vue = "tous";
+  K.rendu();
+  const it = document.getElementById("it-" + id);
+  if (it) { it.scrollIntoView({ block: "center" }); it.classList.remove("flash"); void it.offsetWidth; it.classList.add("flash"); }
+}
+
+K.boot({
+  nom: "Console alerte précoce", accueil: "Trajectoires", accueilHtml,
+  ouvrir(id) { loc.vue = "tous"; loc.fonds = ""; loc.open.add(id); },
+  click(e) {
+    const f = e.target.closest("[data-lf]"); if (f) { loc.fonds = f.dataset.lf; K.rendu(); return true; }
+    const v = e.target.closest("[data-lv]"); if (v) { loc.vue = v.dataset.lv; K.rendu(); return true; }
+    const t = e.target.closest("[data-lt]"); if (t) { loc.tri = t.dataset.lt; K.rendu(); return true; }
+    const g = e.target.closest("[data-g]"); if (g) { voir(g.dataset.g); return true; }
+    const r = e.target.closest("[data-row]"); if (r) { basculer(r.dataset.row); return true; }
+    return false;
+  },
+  key(e) {
+    const g = e.target.closest("[data-g]");
+    if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); voir(g.dataset.g); return true; }
+    const r = e.target.closest("[data-row]");
+    if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); basculer(r.dataset.row); return true; }
+    return false;
+  }
+});
+})();
+</script>
+</body>
+</html>

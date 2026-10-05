@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Consoles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Note de présentation des quatre consoles : une colonne, typographie seule,
+   filets horizontaux, mêmes jetons que les consoles. */
+:root {
+  --bg: #F4F7F7; --surface: #FFFFFF; --ink: #1A2027; --muted: #5A6B72; --rule: #E0E0E0; --navy: #2F4858; --link: #218E8E; --lime: #D9F785;
+  --font: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0F1417; --surface: #161D21; --ink: #E4EAEC; --muted: #9AA8AE; --rule: #283238; --navy: #C9D6DC; --link: #5CC3C3; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0F1417; --surface: #161D21; --ink: #E4EAEC; --muted: #9AA8AE; --rule: #283238; --navy: #C9D6DC; --link: #5CC3C3; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 9pt; line-height: 1.45; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.page { max-width: 1080px; margin-inline: auto; padding-inline: 32px; padding-block: 28px 64px; }
+header { padding-bottom: 12px; border-bottom: 1px solid var(--rule); display: grid; gap: 3px; }
+header .name { margin: 0; font-size: 12pt; font-weight: 700; color: var(--navy); }
+h1 { margin: 0; font-size: 13pt; text-wrap: balance; }
+.lede { margin: 2px 0 0; color: var(--muted); }
+section { margin-top: 26px; }
+h2 { margin: 0 0 8px; font-size: 10pt; text-wrap: balance; }
+p { margin: 0 0 8px; max-width: 90ch; }
+ul { margin: 0 0 8px; padding-left: 18px; max-width: 96ch; }
+li { margin-bottom: 4px; }
+.muted { color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--rule); padding: 4px 16px 8px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 700; color: var(--muted); padding: 10px 14px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: bottom; }
+td { padding: 8px 14px 8px 0; vertical-align: top; border-bottom: 1px solid var(--rule); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { min-width: 120px; }
+td b { display: block; }
+td.q { font-style: italic; min-width: 150px; }
+.open { white-space: nowrap; }
+footer { margin-top: 36px; padding-top: 8px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 8pt; }
+@media (max-width: 640px) { .page { padding-inline: 16px; padding-block: 20px 48px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <p class="name">Risk Studio</p>
+    <h1>Quatre consoles</h1>
+    <p class="lede">Fundcraft France, fonction de gestion des risques - 5 octobre 2026</p>
+  </header>
+
+  <section>
+    <h2>1. Ce qui est commun aux quatre consoles</h2>
+    <ul>
+      <li>Le même cadre que la console C : bandeau avec date d'arrêté et thème, vues secondaires identiques (Liquidité, Indicateurs, Échéancier, Onboarding et due diligence, Studios). <b>Seul l'écran d'accueil change.</b></li>
+      <li>Le même socle de données de démonstration et de calcul : 3 fonds gérés, 36 indicateurs sur 4 arrêtés, scénarios de liquidité et reverse stress test, échéancier, dossiers d'onboarding et de due diligence. Aucune valeur ne provient des fonds.</li>
+      <li>La charte : Calibri 9 pt, palette Fundcraft, rouge et ocre réservés aux alertes et en texte seulement, aucun volet figé, aucun quadrillage, statuts écrits en toutes lettres, noms réels des fonds.</li>
+      <li>Thème clair et sombre, lecture sur téléphone, navigation au clavier.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2. Les quatre écrans d'accueil</h2>
+    <div class="panel tbl"><table>
+      <thead><tr><th>Console</th><th>Question traitée</th><th>Écran d'accueil</th><th>Forces</th><th>Limites</th><th>Fichier</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>1. Matrice</b></td>
+          <td class="q">Où sont les risques, tous fonds confondus&nbsp;?</td>
+          <td>Matrice fonds par domaine de risque, détail du domaine choisi dessous, actions et échéances à droite. C'est la console C retravaillée.</td>
+          <td>Vue d'ensemble immédiate. Navigation au clavier dans la matrice. Fonds en onboarding visibles.</td>
+          <td>Le statut agrégé d'un domaine masque le nombre d'indicateurs en alerte. Rien sur la dynamique.</td>
+          <td class="open"><a href="RiskStudio_C1_Matrice.html">Ouvrir</a></td>
+        </tr>
+        <tr>
+          <td><b>2. Par fonds</b></td>
+          <td class="q">Où en est ce fonds&nbsp;?</td>
+          <td>Liste des fonds et des dossiers à gauche ; à droite, la fiche complète du véhicule choisi : domaines, indicateurs, liquidité, actions, échéances.</td>
+          <td>Part toujours du véhicule avant l'analyse. Tout le fonds sur un écran, liquidité comprise. Onboarding et due diligence dans la même liste.</td>
+          <td>Pas de vue transversale immédiate. Comparer deux fonds demande deux sélections.</td>
+          <td class="open"><a href="RiskStudio_C2_Fonds.html">Ouvrir</a></td>
+        </tr>
+        <tr>
+          <td><b>3. Décisions</b></td>
+          <td class="q">Que dois-je traiter, escalader ou soumettre au comité&nbsp;?</td>
+          <td>Exceptions rangées par niveau de réponse (escalade, données à obtenir, surveillance), ordre du jour du comité généré, agenda à 60 jours.</td>
+          <td>Gestion par exception. Fait ressortir les indicateurs sous surveillance sans action ouverte (9 dans la démonstration). Prépare l'ordre du jour du comité du 14/10.</td>
+          <td>N'affiche rien de ce qui est conforme. La colonne « sous surveillance » s'allonge vite.</td>
+          <td class="open"><a href="RiskStudio_C3_Decisions.html">Ouvrir</a></td>
+        </tr>
+        <tr>
+          <td><b>4. Alerte précoce</b></td>
+          <td class="q">Qu'est-ce qui va casser, et quand&nbsp;?</td>
+          <td>Frise des franchissements projetés à 6 mois, puis marge consommée, pente mensuelle et dates projetées d'alerte et de limite pour chaque indicateur.</td>
+          <td>Anticipe au lieu de constater. Donne une date lisible par le comité. Tri par marge consommée.</td>
+          <td>Projection linéaire sur 4 points au plus : confiance faible au-delà de 3 mois, biaisée pour les séries trimestrielles et les VL lissées.</td>
+          <td class="open"><a href="RiskStudio_C4_AlertePrecoce.html">Ouvrir</a></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>3. Recommandation</h2>
+    <p>Les quatre consoles ne s'excluent pas : elles partagent déjà le même cadre. Je propose de les assembler ainsi.</p>
+    <ul>
+      <li><b>Écran d'accueil : console 3, Décisions.</b> C'est celle qui répond le plus directement à la journée d'un Head of Risk : quoi escalader, quoi relancer, quoi porter au comité.</li>
+      <li><b>Fiche de fonds : console 2.</b> Chaque élément de l'accueil ouvre la fiche du véhicule concerné, ce qui garantit qu'on identifie toujours le fonds avant d'analyser.</li>
+      <li><b>Projection de la console 4 : en colonne, pas en écran.</b> La date projetée de franchissement figure déjà dans la colonne « sous surveillance » de la console 3 ; je l'ajouterais à la fiche de fonds. Sa fiabilité ne justifie pas un écran d'accueil.</li>
+      <li><b>Matrice de la console 1 : en vue de synthèse</b> pour le comité et la Direction générale, où elle reste la meilleure image d'ensemble.</li>
+    </ul>
+    <p class="muted">Niveau de confiance : moyen. Si vous préférez entrer par le fonds plutôt que par les décisions, la console 2 devient l'accueil. Le suivi des limites relève du Règlement délégué (UE) 231/2013, art. 44 ; la projection de leur franchissement relève de la pratique de marché, pas d'une exigence réglementaire.</p>
+  </section>
+
+  <section>
+    <h2>4. Pour passer à la version réelle</h2>
+    <ul>
+      <li>Votre choix : une console, ou l'assemblage proposé.</li>
+      <li>Le référentiel des indicateurs et des limites validés, repris de KRI Studio et de Risk Limit Studio.</li>
+      <li>Le format des données par arrêté (classeur ou CSV) : valeur, source et commentaire par indicateur, et l'historique disponible pour les trajectoires.</li>
+      <li>Les paramètres de liquidité contractuels de chaque fonds (gate, préavis, facilités de crédit), marqués « à confirmer » dans les maquettes.</li>
+    </ul>
+  </section>
+
+  <footer>Dossier risk-studio. Les sources sont dans _src : core.js (données et calculs), console.js et console.css (cadre commun), une page par console ; python3 _src/build.py assemble les fichiers autonomes. La première série (note, classeur, console C) est conservée dans archives.</footer>
+</div>
+</body>
+</html>

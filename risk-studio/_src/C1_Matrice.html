@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Matrice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*@KITCSS*/
+/* Console 1 - matrice. Question : où sont les risques, tous fonds confondus ?
+   Matrice fonds x domaines au centre, détail du domaine sélectionné dessous,
+   actions et échéances à droite. */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 24px; align-items: start; }
+.mx th, .mx td { border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
+.mx thead th { font-weight: 700; color: var(--muted); padding: 0 6px 6px; vertical-align: bottom; }
+.mx thead th:first-child { padding-left: 0; }
+.mx tbody th { padding: 8px 12px 8px 0; font-weight: 400; min-width: 170px; }
+.mx tbody th b { display: block; }
+.mx tbody th span { color: var(--muted); font-size: 8pt; }
+.mx td { padding: 2px; }
+.mx tr.grp th { padding: 14px 0 4px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 0; }
+.mx td.pend { padding: 8px 6px; color: var(--muted); }
+.cell { width: 100%; background: none; border: 0; padding: 9px 6px; text-align: left; cursor: pointer; white-space: nowrap; }
+.cell:hover { background: var(--hover); }
+.cell[aria-pressed="true"] { background: var(--sel); box-shadow: inset 0 0 0 1px var(--teal); }
+.cell.na { cursor: default; }
+.cell.na:hover { background: none; }
+.legend { margin: 8px 0 0; color: var(--muted); font-size: 8pt; }
+.detail { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.dh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 4px; }
+.dh h2 { margin: 0; font-size: 11pt; }
+.rail { display: grid; gap: 22px; min-width: 0; }
+@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>/*@CORE*/</script>
+<script>/*@KIT*/</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
+const loc = { f: null, d: null };
+
+/* sélection par défaut : la case la plus grave de la matrice */
+function defaut() {
+  let best = null, rang = -1;
+  D.fonds.forEach(f => D.domaines.forEach(d => {
+    const r = R.STATUTS[R.statutDomaine(f.id, d.id, st.i)].rang;
+    if (r > rang) { rang = r; best = [f.id, d.id]; }
+  }));
+  loc.f = best[0]; loc.d = best[1];
+}
+
+function accueilHtml() {
+  const i = st.i, c = R.compte(i), acts = R.actionsOuvertes(), ech = R.echeancesDans(30);
+  if (!loc.f || R.statutDomaine(loc.f, loc.d, i) === "NA") defaut();
+  const hautes = acts.filter(a => a.prio === "Haute").length;
+  const figs = [["DEP", c.DEP, K.pl(c.DEP, "Dépassement", "Dépassements"), "c-DEP"], ["MAN", c.MAN, K.pl(c.MAN, "Donnée manquante", "Données manquantes"), ""],
+                ["SURV", c.SURV, "Sous surveillance", "c-SURV"], ["OK", c.OK, K.pl(c.OK, "Conforme", "Conformes"), ""]];
+  let h = '<div class="summary">' + figs.map(f => '<button type="button" class="fig" data-filtre="' + f[0] + '"><b class="' + f[3] + '">' + f[1] + '</b><span>' + f[2] + '</span></button>').join("") +
+    '<div class="fig"><b>' + acts.length + '</b><span>' + R.esc("Actions ouvertes, dont " + hautes + " haute" + (hautes > 1 ? "s" : "")) + '</span></div>' +
+    '<div class="fig"><b>' + ech.length + '</b><span>Échéances à 30 jours</span></div></div>';
+
+  const head = '<thead><tr><th scope="col">Fonds</th>' + D.domaines.map(d => '<th scope="col">' + R.esc(d.nom) + '</th>').join("") + '<th scope="col">Ensemble</th></tr></thead>';
+  const rows = D.fonds.map((f, r) => '<tr><th scope="row"><b>' + R.esc(f.nom) + '</b><span>' + R.esc(f.nature.split(",")[0]) + '</span></th>' +
+    D.domaines.map((d, k) => {
+      const code = R.statutDomaine(f.id, d.id, i), on = f.id === loc.f && d.id === loc.d;
+      return '<td><button type="button" class="cell' + (code === "NA" ? " na" : "") + '" data-f="' + f.id + '" data-d="' + d.id + '" data-r="' + r + '" data-k="' + k + '"' +
+        ' aria-pressed="' + on + '" tabindex="' + (on ? 0 : -1) + '" aria-label="' + R.esc(f.court + ", " + d.nom + " : " + R.STATUTS[code].lib) + '">' + K.C(code) + '</button></td>';
+    }).join("") + '<td class="pend">' + K.C(R.statutFonds(f.id, i)) + '</td></tr>').join("");
+  const onb = D.pipeline.filter(p => p.nature === "Onboarding").map(p => '<tr><th scope="row"><b>' + R.esc(p.nom) + '</b><span>Onboarding</span></th>' +
+    '<td colspan="8" class="pend">' + R.t("Indicateurs paramétrés après le comité des risques. Étape en cours : " + p.etapes[p.cur].toLowerCase() + " (" + (p.cur + 1) + " sur " + p.etapes.length + ").") + '</td></tr>').join("");
+
+  const f = R.fondsById[loc.f], d = R.domById[loc.d], l = R.indicateursDe(loc.f, loc.d);
+  const det = '<div class="detail"><div class="dh"><h2>' + R.esc(f.nom) + ' - ' + R.esc(d.nom) + '</h2>' +
+    '<span>' + K.C(R.statutDomaine(loc.f, loc.d, i), true) + ' <span class="muted">au ' + R.date(K.arrete()) + ', ' + l.length + ' ' + K.pl(l.length, "indicateur", "indicateurs") + '</span></span></div>' +
+    l.map(K.article).join("") + '</div>';
+
+  h += '<div class="layout"><div class="panel"><h2 class="lbl">Matrice des risques</h2>' +
+    '<div class="scroll"><table class="mx">' + head + '<tbody>' + rows + '<tr class="grp"><th colspan="9">En cours d\'onboarding</th></tr>' + onb + '</tbody></table></div>' +
+    '<p class="legend">' + R.t("Statut le plus défavorable des indicateurs du domaine. Flèches du clavier pour se déplacer dans la matrice.") + '</p>' + det + '</div>' +
+    '<aside class="rail"><section><h2 class="lbl">À traiter</h2><ol class="plain">' + acts.map(K.todo).join("") + '</ol></section>' +
+    '<section><h2 class="lbl">Échéances à 30 jours</h2><ol class="plain">' + ech.map(K.echItem).join("") + '</ol>' +
+    '<p class="note"><button type="button" class="lk" data-vue-go="echeancier">Échéancier complet</button></p></section></aside></div>';
+  return h;
+}
+
+function choisir(f, d) {
+  loc.f = f; loc.d = d; K.rendu();
+  const c = document.querySelector('.cell[aria-pressed="true"]'); if (c) c.focus();
+}
+
+K.boot({
+  nom: "Console matrice", accueil: "Pilotage", accueilHtml,
+  ouvrir(id) { const x = R.indById[id]; loc.f = x.f; loc.d = x.d; },
+  click(e) {
+    const cell = e.target.closest(".cell[data-f]");
+    if (!cell) return false;
+    if (!cell.classList.contains("na")) choisir(cell.dataset.f, cell.dataset.d);
+    return true;
+  },
+  key(e) {
+    const cell = e.target.closest(".cell[data-f]");
+    const mv = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] }[e.key];
+    if (!cell || !mv) return false;
+    e.preventDefault();
+    const r = Math.max(0, Math.min(D.fonds.length - 1, Number(cell.dataset.r) + mv[0]));
+    const k = Math.max(0, Math.min(D.domaines.length - 1, Number(cell.dataset.k) + mv[1]));
+    const next = document.querySelector('.cell[data-r="' + r + '"][data-k="' + k + '"]');
+    if (!next) return true;
+    if (next.classList.contains("na")) next.focus(); else choisir(next.dataset.f, next.dataset.d);
+    return true;
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,217 @@
-/* Risk Studio - socle commun aux trois propositions d'interface.
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Matrice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Risk Studio - famille des consoles. Feuille commune aux quatre consoles :
+   jetons de couleur, en-tête, statuts, indicateurs, vues secondaires.
+   Calibri 9, palette Fundcraft ; rouge et ocre réservés aux alertes, en texte.
+   Rien n'est figé : la page défile d'un bloc. Aucun quadrillage : filets horizontaux. */
+:root {
+  --bg: #F4F7F7;
+  --surface: #FFFFFF;
+  --ink: #1A2027;
+  --muted: #5A6B72;
+  --faint: #9AA6AB;
+  --rule: #E0E0E0;
+  --navy: #2F4858;
+  --bar: #2F4858;
+  --bar-soft: #C9D6DC;
+  --teal: #218E8E;
+  --lime: #D9F785;
+  --crit: #A3221B;
+  --warn: #8A5A00;
+  --sel: #EBFCF9;
+  --hover: #F0F4F4;
+  --font: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1417; --surface: #161D21; --ink: #E4EAEC; --muted: #9AA8AE; --faint: #66757C; --rule: #283238;
+    --navy: #C9D6DC; --bar: #8FB0C2; --bar-soft: #2C3A42; --teal: #5CC3C3; --crit: #F08A80; --warn: #E2B85A;
+    --sel: #183034; --hover: #1B2428; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1417; --surface: #161D21; --ink: #E4EAEC; --muted: #9AA8AE; --faint: #66757C; --rule: #283238;
+  --navy: #C9D6DC; --bar: #8FB0C2; --bar-soft: #2C3A42; --teal: #5CC3C3; --crit: #F08A80; --warn: #E2B85A;
+  --sel: #183034; --hover: #1B2428; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 9pt; line-height: 1.4; }
+[hidden] { display: none !important; }
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3 { text-wrap: balance; }
+
+.shell { max-width: 1360px; margin-inline: auto; padding-inline: 24px; padding-block: 0 56px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; padding-block: 14px 0; border-bottom: 1px solid var(--rule); }
+.brand { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; }
+.brand .name { font-size: 12pt; font-weight: 700; color: var(--navy); }
+.brand .ent { color: var(--muted); }
+.views { display: flex; flex-wrap: wrap; gap: 0 18px; }
+.views button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 2px 0 9px; color: var(--muted); cursor: pointer; }
+.views button:hover { color: var(--ink); }
+.views button[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--lime); }
+.tools { margin-left: auto; display: flex; align-items: center; gap: 14px; padding-bottom: 10px; }
+.tools label { color: var(--muted); }
+.tools select { background: var(--surface); border: 1px solid var(--rule); padding: 1px 4px; }
+.quiet { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; }
+.quiet:hover { color: var(--ink); text-decoration: underline; }
+.demo { margin: 8px 0 0; color: var(--muted); font-size: 8pt; }
+.foot { margin-top: 28px; color: var(--muted); font-size: 8pt; }
+
+.lbl { margin: 0 0 8px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nw { white-space: nowrap; }
+.lk { background: none; border: 0; padding: 0; color: var(--teal); cursor: pointer; text-align: left; }
+.lk:hover { text-decoration: underline; }
+.scroll { overflow-x: auto; }
+.panel { background: var(--surface); border: 1px solid var(--rule); padding: 14px 16px 16px; min-width: 0; }
+p.note { margin: 8px 0 0; color: var(--muted); }
+
+.c-DEP { color: var(--crit); font-weight: 700; }
+.c-SURV { color: var(--warn); }
+.c-MAN { font-style: italic; }
+.c-OK { color: var(--muted); }
+.c-NA { color: var(--faint); }
+.prio-Haute { color: var(--crit); font-weight: 700; }
+.prio-Moyenne { color: var(--ink); }
+.prio-Basse { color: var(--muted); }
+.st-risk { color: var(--crit); font-weight: 700; }
+
+/* chiffres de synthèse */
+.summary { display: flex; flex-wrap: wrap; gap: 10px 40px; margin: 18px 0 20px; }
+.fig { background: none; border: 0; padding: 0; text-align: left; display: grid; }
+button.fig { cursor: pointer; }
+button.fig:hover span { text-decoration: underline; }
+.fig b { font-size: 20pt; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.fig span { color: var(--muted); }
+
+/* indicateur détaillé */
+.it { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(120px, 1fr) 164px minmax(120px, 1fr); gap: 6px 18px;
+      padding: 12px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.it:last-child { border-bottom: 0; }
+.it .nm b { display: block; }
+.it .val b { display: block; font-size: 14pt; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.it .more { grid-column: 1 / -1; display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 2px 12px; margin: 0; }
+.it .more dt { color: var(--muted); }
+.it .more dd { margin: 0; }
+.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: var(--sel); } to { background: transparent; } }
+.spark { display: block; max-width: 100%; height: auto; }
+.spark .ln { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.spark .pt { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+.spark .pt.cur { fill: var(--ink); }
+.spark .al { stroke: var(--warn); stroke-width: 1; stroke-dasharray: 3 3; }
+.spark .lim { stroke: var(--crit); stroke-width: 1; stroke-dasharray: 3 3; }
+.sx { display: flex; justify-content: space-between; color: var(--faint); font-size: 8pt; width: 164px; max-width: 100%; }
+
+/* listes d'actions et d'échéances */
+ol.plain, ul.plain { list-style: none; margin: 0; padding: 0; }
+.todo { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 2px 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.todo:first-child { padding-top: 0; }
+.todo:last-child { border-bottom: 0; }
+.todo .when b { display: block; font-variant-numeric: tabular-nums; }
+.todo .when span { color: var(--muted); font-size: 8pt; }
+.todo .what p { margin: 0 0 2px; }
+
+.seg { display: flex; gap: 2px; margin: 4px 0; max-width: 220px; }
+.seg i { flex: 1; height: 5px; background: var(--rule); }
+.seg i.done { background: var(--bar); }
+.seg i.cur { background: var(--teal); }
+
+/* vues secondaires */
+.view-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px; margin: 20px 0 12px; }
+.view-h h1 { margin: 0; font-size: 12pt; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-bottom: 8px; }
+.chips .k { color: var(--muted); margin-right: 4px; min-width: 46px; }
+.chip { background: var(--surface); border: 1px solid var(--rule); padding: 2px 9px; cursor: pointer; }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: var(--surface); font-weight: 700; }
+.chip .ct { opacity: .7; margin-left: 4px; font-variant-numeric: tabular-nums; }
+table { border-collapse: collapse; width: 100%; }
+.list th { text-align: left; font-weight: 700; color: var(--muted); padding: 0 12px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: bottom; white-space: nowrap; }
+.list td { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.list th.n, .list td.n { text-align: right; }
+.list tbody tr.go { cursor: pointer; }
+.list tbody tr.go:hover > td { background: var(--hover); }
+.list tr.grp td { padding-top: 16px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.list tr.det > td { padding: 0 0 4px; }
+.list tr.det .it { border-bottom: 0; }
+
+/* barres de couverture de liquidité */
+.liq { display: grid; gap: 4px; }
+.liq-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 56px; gap: 10px; align-items: center; }
+.track { position: relative; height: 16px; }
+.track .b { position: absolute; left: 0; top: 2px; bottom: 2px; background: var(--bar); }
+.track .b.low { background: var(--crit); }
+.track .ref { position: absolute; top: -3px; bottom: -3px; border-left: 1px dashed var(--crit); }
+.track .ref.al { border-left-color: var(--warn); }
+.axis { position: relative; height: 14px; margin-left: 74px; margin-right: 66px; color: var(--faint); font-size: 8pt; }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.liq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; }
+.liq-grid > .panel h2 { margin: 0 0 2px; font-size: 10pt; }
+.hyp { margin: 0; padding-left: 16px; max-width: 120ch; }
+.hyp li { margin-bottom: 3px; }
+.studios { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 28px; }
+.studio { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.studio b { display: block; }
+
+@media (max-width: 760px) {
+  .it { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .it .nm { grid-column: 1 / -1; }
+  .it .more { grid-template-columns: 1fr; }
+  .liq-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .shell { padding-inline: 16px; }
+  .tools { margin-left: 0; }
+  .summary { gap: 10px 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+
+/* Console 1 - matrice. Question : où sont les risques, tous fonds confondus ?
+   Matrice fonds x domaines au centre, détail du domaine sélectionné dessous,
+   actions et échéances à droite. */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 24px; align-items: start; }
+.mx th, .mx td { border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
+.mx thead th { font-weight: 700; color: var(--muted); padding: 0 6px 6px; vertical-align: bottom; }
+.mx thead th:first-child { padding-left: 0; }
+.mx tbody th { padding: 8px 12px 8px 0; font-weight: 400; min-width: 170px; }
+.mx tbody th b { display: block; }
+.mx tbody th span { color: var(--muted); font-size: 8pt; }
+.mx td { padding: 2px; }
+.mx tr.grp th { padding: 14px 0 4px; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 0; }
+.mx td.pend { padding: 8px 6px; color: var(--muted); }
+.cell { width: 100%; background: none; border: 0; padding: 9px 6px; text-align: left; cursor: pointer; white-space: nowrap; }
+.cell:hover { background: var(--hover); }
+.cell[aria-pressed="true"] { background: var(--sel); box-shadow: inset 0 0 0 1px var(--teal); }
+.cell.na { cursor: default; }
+.cell.na:hover { background: none; }
+.legend { margin: 8px 0 0; color: var(--muted); font-size: 8pt; }
+.detail { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.dh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 4px; }
+.dh h2 { margin: 0; font-size: 11pt; }
+.rail { display: grid; gap: 22px; min-width: 0; }
+@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>/* Risk Studio - socle commun aux trois propositions d'interface.
    Données de démonstration (valeurs fictives) et moteur de calcul : statuts,
    tendances, marges, scénarios de liquidité. Les trois interfaces lisent ce
    même bloc, la comparaison porte donc sur l'interface seule.
@@ -621,3 +834,333 @@ window.RS = {
   pente, ajouterMois, periode, projection, utilisation, utilisationAlerte
 };
 })();
+</script>
+<script>/* Risk Studio - kit commun aux consoles : cadre, fragments réutilisables,
+   vues secondaires (liquidité, indicateurs, échéancier, onboarding, studios)
+   et routage. Chaque console fournit seulement son écran d'accueil. */
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA;
+const st = { i: D.meta.arretes.length - 1, vue: "accueil", filtre: { statut: "", fonds: "" }, focus: null };
+let page = null, VUES = [];
+const $ = id => document.getElementById(id);
+
+const C = (code, long) => '<span class="c-' + code + '">' + R.esc(long ? R.STATUTS[code].lib : R.STATUTS[code].court) + '</span>';
+const seuil = (ind, k) => ind[k] === null ? "-" : R.val(ind[k], ind.u);
+const pl = (n, s, p) => n > 1 ? p : s;
+const arrete = () => D.meta.arretes[st.i];
+
+/* ------------------------------------------------------------ fragments */
+function spark(ind, w, h) {
+  w = w || 164; h = h || 44;
+  const vals = ind.h.filter(v => v !== null);
+  const pool = vals.concat([ind.al, ind.lim].filter(v => v !== null));
+  let lo = Math.min.apply(null, pool), hi = Math.max.apply(null, pool);
+  if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+  const px = 5, py = 5;
+  const X = k => px + k * (w - 2 * px) / (ind.h.length - 1);
+  const Y = v => py + (hi - v) * (h - 2 * py) / (hi - lo);
+  let s = '<svg class="spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' +
+    R.esc("Évolution sur quatre arrêtés : " + ind.h.map(v => R.val(v, ind.u)).join(", ")) + '">';
+  if (ind.al !== null) s += '<line class="al" x1="0" x2="' + w + '" y1="' + Y(ind.al).toFixed(1) + '" y2="' + Y(ind.al).toFixed(1) + '"/>';
+  if (ind.lim !== null) s += '<line class="lim" x1="0" x2="' + w + '" y1="' + Y(ind.lim).toFixed(1) + '" y2="' + Y(ind.lim).toFixed(1) + '"/>';
+  let path = "", open = false;
+  ind.h.forEach((v, k) => { if (v === null) { open = false; return; } path += (open ? " L" : " M") + X(k).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+  if (path) s += '<path class="ln" d="' + path.trim() + '"/>';
+  ind.h.forEach((v, k) => {
+    if (v !== null) s += '<circle class="pt' + (k === st.i ? ' cur' : '') + '" cx="' + X(k).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="' + (k === st.i ? 3.2 : 2.4) + '"/>';
+  });
+  return s + '</svg>';
+}
+
+function article(ind) {
+  const i = st.i, code = R.statut(ind, i), m = R.marge(ind, i), tr = R.tendance(ind, i);
+  const a = ind.act ? R.actById[ind.act] : null;
+  const seuils = ind.lim === null ? "Alerte " + seuil(ind, "al") + ", sans limite"
+    : (ind.sens === "max" ? "Plafond " : "Plancher ") + seuil(ind, "lim") + " - alerte " + seuil(ind, "al");
+  return '<article class="it" id="it-' + ind.id + '">' +
+    '<div class="nm"><b>' + R.t(ind.lib) + '</b><span class="muted">' + R.t(ind.def) + '</span></div>' +
+    '<div class="val"><b class="c-' + code + '">' + R.val(R.valeur(ind, i), ind.u) + '</b><span class="muted">' + R.t(seuils) + '</span></div>' +
+    '<div>' + spark(ind) + '<div class="sx"><span>' + R.dateCourte(D.meta.arretes[0]) + '</span><span>' + R.dateCourte(D.meta.arretes[D.meta.arretes.length - 1]) + '</span></div></div>' +
+    '<div>' + C(code, true) + '<br><span class="muted">' + (m === null ? "Marge n.d." : "Marge " + R.signe(m, ind.u)) + '<br>' + R.esc(tr.lib) + '</span></div>' +
+    '<dl class="more">' +
+    (ind.com ? '<dt>Commentaire</dt><dd>' + R.t(ind.com) + '</dd>' : '') +
+    (a ? '<dt>Action</dt><dd>' + R.t(a.objet) + ' <span class="muted">' + R.esc(a.resp + ", " + R.date(a.ech) + ", priorité " + a.prio.toLowerCase()) + '</span></dd>' : '') +
+    '<dt>Nature</dt><dd>' + R.t(ind.type + ", " + ind.nat.toLowerCase() + ". " + ind.ref) + '</dd>' +
+    '<dt>Source</dt><dd class="muted">' + R.t(ind.src) + '</dd>' +
+    '</dl></article>';
+}
+
+function todo(a) {
+  const qui = a.f ? R.fondsById[a.f].court : R.pipeById[a.pipe].nom;
+  const ind = a.ind ? R.indById[a.ind] : null;
+  return '<li class="todo"><div class="when"><b>' + R.dateCourte(a.ech) + '</b><span>' + R.esc(R.delai(a.ech)) + '</span></div><div class="what">' +
+    '<p><span class="prio-' + a.prio + '">' + R.esc("Priorité " + a.prio.toLowerCase()) + '</span> <span class="muted">- ' + R.esc(qui) + '</span></p>' +
+    '<p>' + R.t(a.objet) + '</p>' +
+    (ind ? '<button type="button" class="lk" data-open="' + ind.id + '">Voir l\'indicateur</button>'
+         : '<button type="button" class="lk" data-vue-go="pipeline">Voir le dossier</button>') +
+    '</div></li>';
+}
+
+function echItem(e) {
+  return '<li class="todo"><div class="when"><b>' + R.dateCourte(e.date) + '</b><span>' + R.esc(R.delai(e.date)) + '</span></div><div class="what">' +
+    '<p>' + R.t(e.objet) + '</p><p class="muted">' + R.esc(e.f.map(x => R.fondsById[x].court).join(", ")) + ' - <span class="' +
+    (e.statut === "À risque" || e.statut === "Non lancé" ? "st-risk" : "") + '">' + R.esc(e.statut) + '</span></p></div></li>';
+}
+
+/* barres de couverture de liquidité d'un fonds, dessinées à l'échelle */
+function liqBlock(id) {
+  const cfg = R.copieLiquidite(id), res = {};
+  R.SCENARIOS.forEach(s => { res[s.k] = R.liquidite(cfg, s.k); });
+  const kri = D.indicateurs.find(x => x.f === id && x.d === "LIQ" && x.u === "x");
+  const al = kri ? kri.al : null;
+  const maxv = Math.max.apply(null, R.SCENARIOS.map(s => res[s.k].couverture || 0).concat([al || 0, 1]));
+  const xmax = Math.max(2, Math.ceil(maxv * 1.1 * 2) / 2);
+  const pc = v => (Math.max(0, Math.min(v, xmax)) / xmax * 100).toFixed(2) + "%";
+  const refs = '<span class="ref" style="left:' + pc(1) + '"></span>' + (al ? '<span class="ref al" style="left:' + pc(al) + '"></span>' : '');
+  const bars = R.SCENARIOS.map(s => {
+    const v = res[s.k].couverture;
+    return '<div class="liq-row"><span>' + s.lib + '</span><div class="track"><span class="b' + (v < 1 ? ' low' : '') + '" style="width:' + pc(v) + '"></span>' + refs + '</div>' +
+      '<span class="n' + (v < 1 ? ' c-DEP' : '') + '">' + R.val(v, "x") + '</span></div>';
+  }).join("");
+  const ticks = [];
+  for (let x = 0; x <= xmax + 1e-9; x += 0.5) ticks.push('<span style="left:' + pc(x) + '">' + R.nombre(x, 1) + 'x</span>');
+  const eur = v => R.nombre(v, 1);
+  const sg = v => (v > 0.05 ? "+" : v < -0.05 ? "-" : "") + R.nombre(Math.abs(v), 1);
+  const tab = '<table class="list" style="margin-top:12px"><thead><tr><th>EUR m</th>' + R.SCENARIOS.map(s => '<th class="n">' + s.lib + '</th>').join("") + '</tr></thead><tbody>' +
+    '<tr><td>Ressources</td>' + R.SCENARIOS.map(s => '<td class="n">' + eur(res[s.k].ressources) + '</td>').join("") + '</tr>' +
+    '<tr><td>' + (cfg.type === "ouvert" ? "Rachats servis et appels" : "Décaissements prévus") + '</td>' + R.SCENARIOS.map(s => '<td class="n">' + eur(res[s.k].besoins) + '</td>').join("") + '</tr>' +
+    (cfg.type === "ouvert" ? '<tr><td>Rachats différés par la gate</td>' + R.SCENARIOS.map(s => '<td class="n">' + eur(res[s.k].differes) + '</td>').join("") + '</tr>' : '') +
+    '<tr><td><b>Solde</b></td>' + R.SCENARIOS.map(s => '<td class="n' + (res[s.k].solde < 0 ? ' c-DEP' : '') + '">' + sg(res[s.k].solde) + '</td>').join("") + '</tr></tbody></table>';
+  return '<p class="muted" style="margin:0 0 12px">' +
+    R.t(cfg.type === "ouvert" ? "Couverture des rachats servis et des appels des fonds cibles à 3 mois" : "Couverture des décaissements à 12 mois") + '</p>' +
+    '<div class="liq">' + bars + '</div><div class="axis">' + ticks.join("") + '</div>' +
+    '<p class="note">' + R.t("Pointillés : plancher 1,00x" + (al ? " et seuil d'alerte " + R.val(al, "x") : "") + ".") + '</p>' + tab +
+    '<p style="margin:10px 0 0"><b>Reverse stress test.</b> ' + R.t(R.reverse(cfg).texte) + '</p>';
+}
+
+/* ------------------------------------------------------------ vues secondaires */
+function vLiquidite() {
+  const blocs = ["AIR", "OPN", "ALE"].map(id => '<div class="panel"><h2>' + R.esc(R.fondsById[id].nom) + '</h2>' + liqBlock(id) + '</div>').join("");
+  return '<div class="view-h"><h1>Liquidité</h1><span class="muted">' + R.t("Scénarios calibrés au 30/09/2026") + '</span></div>' +
+    '<div class="panel" style="margin-bottom:18px"><h2 class="lbl">Hypothèses clés et limites</h2><ul class="hyp">' +
+    D.hypothesesLiquidite.map(x => '<li>' + R.t(x) + '</li>').join("") + '</ul></div><div class="liq-grid">' + blocs + '</div>';
+}
+
+function vIndicateurs() {
+  const i = st.i, F = st.filtre;
+  const base = D.indicateurs.filter(x => !F.fonds || x.f === F.fonds);
+  const l = base.filter(x => !F.statut || R.statut(x, i) === F.statut)
+    .sort((a, b) => R.STATUTS[R.statut(b, i)].rang - R.STATUTS[R.statut(a, i)].rang);
+  const cnt = c => base.filter(x => R.statut(x, i) === c).length;
+  const chipsS = '<div class="chips" role="group" aria-label="Filtrer par statut"><span class="k">Statut</span>' +
+    [["", "Tous", base.length]].concat(R.ORDRE_STATUTS.map(c => [c, R.STATUTS[c].lib, cnt(c)])).map(c =>
+      '<button type="button" class="chip" data-fs="' + c[0] + '" aria-pressed="' + (F.statut === c[0]) + '">' + R.esc(c[1]) + '<span class="ct">' + c[2] + '</span></button>').join("") + '</div>';
+  const chipsF = '<div class="chips" role="group" aria-label="Filtrer par fonds"><span class="k">Fonds</span>' +
+    [["", "Tous"]].concat(D.fonds.map(f => [f.id, f.court])).map(c =>
+      '<button type="button" class="chip" data-ff="' + c[0] + '" aria-pressed="' + (F.fonds === c[0]) + '">' + R.esc(c[1]) + '</button>').join("") + '</div>';
+  const rows = l.map(x => {
+    const m = R.marge(x, i), code = R.statut(x, i);
+    return '<tr class="go" data-open="' + x.id + '" tabindex="0"><td class="nw">' + C(code, true) + '</td><td class="nw">' + R.esc(R.fondsById[x.f].court) + '</td>' +
+      '<td class="nw">' + R.esc(R.domById[x.d].nom) + '</td><td>' + R.t(x.lib) + '</td><td class="n">' + R.val(R.valeur(x, i), x.u) + '</td>' +
+      '<td class="n">' + seuil(x, "al") + '</td><td class="n">' + seuil(x, "lim") + '</td><td class="n">' + (m === null ? "-" : R.signe(m, x.u)) + '</td>' +
+      '<td class="nw muted">' + R.esc(R.tendance(x, i).lib) + '</td><td>' + spark(x, 84, 22) + '</td></tr>';
+  }).join("");
+  return '<div class="view-h"><h1>Indicateurs</h1><span class="muted">' + l.length + ' sur ' + D.indicateurs.length + ', du plus grave au moins grave</span></div>' +
+    '<div class="panel">' + chipsS + chipsF + '<div class="scroll"><table class="list"><thead><tr><th>Statut</th><th>Fonds</th><th>Domaine</th><th>Indicateur</th><th class="n">Valeur</th>' +
+    '<th class="n">Alerte</th><th class="n">Limite</th><th class="n">Marge</th><th>Tendance</th><th>Évolution</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="10" class="muted">Aucun indicateur ne correspond aux filtres.</td></tr>') + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Sélectionner une ligne pour l'ouvrir dans l'écran " + page.accueil.toLowerCase() + ".") + '</p></div>';
+}
+
+function vEcheancier() {
+  let mois = "";
+  const rows = D.echeances.map(e => {
+    const m = R.moisAnnee(e.date), g = m !== mois ? '<tr class="grp"><td colspan="6">' + m + '</td></tr>' : '';
+    mois = m;
+    return g + '<tr><td class="nw"><b>' + R.date(e.date) + '</b></td><td class="nw muted">' + R.esc(R.delai(e.date)) + '</td><td>' + R.t(e.objet) + '</td>' +
+      '<td>' + R.esc(e.f.map(x => R.fondsById[x].court).join(", ")) + '</td><td class="muted">' + R.t(e.ref) + '</td>' +
+      '<td class="nw ' + (e.statut === "À risque" || e.statut === "Non lancé" ? "st-risk" : "") + '">' + R.esc(e.statut) + '</td></tr>';
+  }).join("");
+  return '<div class="view-h"><h1>Échéancier</h1><span class="muted">Réglementaire et interne</span></div>' +
+    '<div class="panel"><div class="scroll"><table class="list"><thead><tr><th>Date</th><th>Délai</th><th>Objet</th><th>Fonds</th><th>Référence</th><th>Statut</th></tr></thead><tbody>' +
+    rows + '</tbody></table></div></div>';
+}
+
+function etapes(p) {
+  return '<div class="seg" aria-hidden="true">' + p.etapes.map((e, k) => '<i class="' + (k < p.cur ? "done" : k === p.cur ? "cur" : "") + '"></i>').join("") + '</div>' +
+    R.t("Étape " + (p.cur + 1) + " sur " + p.etapes.length + " : " + p.etapes[p.cur]);
+}
+
+function vPipeline() {
+  const rows = D.pipeline.map(p => '<tr><td><b>' + (p.url ? '<a href="' + p.url + '" target="_blank" rel="noopener">' + R.esc(p.nom) + '</a>' : R.esc(p.nom)) + '</b><br><span class="muted">' + R.esc(p.nature) + '</span></td>' +
+    '<td>' + etapes(p) + '</td>' +
+    '<td>' + R.esc(p.prochaine) + '<br><span class="muted">' + R.date(p.ech) + ', ' + R.esc(R.delai(p.ech)) + '</span></td><td>' + R.t(p.point) + '</td></tr>').join("");
+  return '<div class="view-h"><h1>Onboarding et due diligence</h1><span class="muted">' + D.pipeline.length + ' dossiers</span></div>' +
+    '<div class="panel"><div class="scroll"><table class="list"><thead><tr><th>Dossier</th><th>Avancement</th><th>Prochaine étape</th><th>Point d\'attention</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+}
+
+function vStudios() {
+  return '<div class="view-h"><h1>Studios</h1><span class="muted">Outils de la fonction de gestion des risques</span></div>' +
+    '<div class="panel"><div class="studios">' + D.studios.map(s => '<div class="studio"><b>' +
+      (s.url ? '<a href="' + s.url + '" target="_blank" rel="noopener">' + R.esc(s.nom) + '</a>' : R.esc(s.nom)) + '</b>' +
+      '<span>' + R.esc(s.objet) + '</span><br><span class="' + (s.etat === "En service" ? "muted" : "faint") + '">' + R.esc(s.etat) + '</span></div>').join("") + '</div></div>';
+}
+
+/* ------------------------------------------------------------ cadre et routage */
+const RENDU = { liquidite: vLiquidite, indicateurs: vIndicateurs, echeancier: vEcheancier, pipeline: vPipeline, studios: vStudios };
+
+function shell() {
+  $("app").innerHTML = '<div class="shell"><header class="bar">' +
+    '<div class="brand"><span class="name">Risk Studio</span><span class="ent">' + R.esc(page.nom) + '</span></div>' +
+    '<nav class="views" role="tablist" id="views" aria-label="Vues"></nav>' +
+    '<div class="tools"><label for="arrete">Arrêté</label><select id="arrete"></select>' +
+    '<button type="button" class="quiet" id="theme">Thème&nbsp;: automatique</button></div></header>' +
+    '<p class="demo" id="demo"></p><main id="view"></main><p class="foot" id="foot"></p></div>';
+}
+
+function cadre() {
+  $("views").innerHTML = VUES.map(v => '<button type="button" role="tab" id="tab-' + v[0] + '" data-vue="' + v[0] + '" aria-selected="' + (v[0] === st.vue) + '">' + v[1] + '</button>').join("");
+  $("arrete").innerHTML = D.meta.arretes.map((a, k) => '<option value="' + k + '"' + (k === st.i ? " selected" : "") + '>' + R.date(a) + '</option>').join("");
+  $("demo").textContent = R.fr("Fundcraft France. Données de démonstration : valeurs fictives, non issues des fonds. Produit le " + D.meta.produit + ".");
+  $("foot").textContent = R.fr("Risk Studio, " + page.nom.toLowerCase() + ". Les quatre consoles partagent les mêmes données, les mêmes calculs et les mêmes vues secondaires ; seul l'écran d'accueil change.");
+}
+
+function rendu() {
+  cadre();
+  const v = $("view");
+  v.setAttribute("role", "tabpanel");
+  v.setAttribute("aria-labelledby", "tab-" + st.vue);
+  v.innerHTML = st.vue === "accueil" ? page.accueilHtml() : RENDU[st.vue]();
+  if (page.apres) page.apres();
+  if (st.focus) {
+    const el = $("it-" + st.focus) || document.querySelector('[data-focus="' + st.focus + '"]');
+    st.focus = null;
+    if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+  }
+}
+
+function vue(v) {
+  st.vue = v;
+  try { history.replaceState(null, "", "#" + v); } catch (e) {}
+  rendu(); window.scrollTo(0, 0);
+}
+
+function ouvrir(id) {
+  page.ouvrir(id);
+  st.focus = id; st.vue = "accueil";
+  try { history.replaceState(null, "", "#accueil"); } catch (e) {}
+  rendu();
+}
+
+function boot(p) {
+  page = p;
+  VUES = [["accueil", p.accueil], ["liquidite", "Liquidité"], ["indicateurs", "Indicateurs"], ["echeancier", "Échéancier"],
+          ["pipeline", "Onboarding et due diligence"], ["studios", "Studios"]];
+  shell();
+  $("views").addEventListener("click", e => { const b = e.target.closest("[data-vue]"); if (b) vue(b.dataset.vue); });
+  $("arrete").addEventListener("change", e => { st.i = Number(e.target.value); rendu(); });
+  $("view").addEventListener("click", e => {
+    if (page.click && page.click(e)) return;
+    const o = e.target.closest("[data-open]"); if (o) { ouvrir(o.dataset.open); return; }
+    const g = e.target.closest("[data-vue-go]"); if (g) { vue(g.dataset.vueGo); return; }
+    const fg = e.target.closest("[data-filtre]"); if (fg) { st.filtre = { statut: fg.dataset.filtre, fonds: "" }; vue("indicateurs"); return; }
+    const fs = e.target.closest("[data-fs]"); if (fs) { st.filtre.statut = fs.dataset.fs; rendu(); return; }
+    const ff = e.target.closest("[data-ff]"); if (ff) { st.filtre.fonds = ff.dataset.ff; rendu(); }
+  });
+  $("view").addEventListener("keydown", e => {
+    if (page.key && page.key(e)) return;
+    const row = e.target.closest("tr.go[data-open]");
+    if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); ouvrir(row.dataset.open); }
+  });
+  const h0 = (location.hash || "").slice(1);
+  if (h0 === "accueil" || RENDU[h0]) st.vue = h0;
+  R.theme($("theme"));
+  rendu();
+}
+
+window.RK = { st, C, seuil, pl, arrete, spark, article, todo, echItem, liqBlock, etapes, rendu, vue, ouvrir, boot };
+})();
+</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
+const loc = { f: null, d: null };
+
+/* sélection par défaut : la case la plus grave de la matrice */
+function defaut() {
+  let best = null, rang = -1;
+  D.fonds.forEach(f => D.domaines.forEach(d => {
+    const r = R.STATUTS[R.statutDomaine(f.id, d.id, st.i)].rang;
+    if (r > rang) { rang = r; best = [f.id, d.id]; }
+  }));
+  loc.f = best[0]; loc.d = best[1];
+}
+
+function accueilHtml() {
+  const i = st.i, c = R.compte(i), acts = R.actionsOuvertes(), ech = R.echeancesDans(30);
+  if (!loc.f || R.statutDomaine(loc.f, loc.d, i) === "NA") defaut();
+  const hautes = acts.filter(a => a.prio === "Haute").length;
+  const figs = [["DEP", c.DEP, K.pl(c.DEP, "Dépassement", "Dépassements"), "c-DEP"], ["MAN", c.MAN, K.pl(c.MAN, "Donnée manquante", "Données manquantes"), ""],
+                ["SURV", c.SURV, "Sous surveillance", "c-SURV"], ["OK", c.OK, K.pl(c.OK, "Conforme", "Conformes"), ""]];
+  let h = '<div class="summary">' + figs.map(f => '<button type="button" class="fig" data-filtre="' + f[0] + '"><b class="' + f[3] + '">' + f[1] + '</b><span>' + f[2] + '</span></button>').join("") +
+    '<div class="fig"><b>' + acts.length + '</b><span>' + R.esc("Actions ouvertes, dont " + hautes + " haute" + (hautes > 1 ? "s" : "")) + '</span></div>' +
+    '<div class="fig"><b>' + ech.length + '</b><span>Échéances à 30 jours</span></div></div>';
+
+  const head = '<thead><tr><th scope="col">Fonds</th>' + D.domaines.map(d => '<th scope="col">' + R.esc(d.nom) + '</th>').join("") + '<th scope="col">Ensemble</th></tr></thead>';
+  const rows = D.fonds.map((f, r) => '<tr><th scope="row"><b>' + R.esc(f.nom) + '</b><span>' + R.esc(f.nature.split(",")[0]) + '</span></th>' +
+    D.domaines.map((d, k) => {
+      const code = R.statutDomaine(f.id, d.id, i), on = f.id === loc.f && d.id === loc.d;
+      return '<td><button type="button" class="cell' + (code === "NA" ? " na" : "") + '" data-f="' + f.id + '" data-d="' + d.id + '" data-r="' + r + '" data-k="' + k + '"' +
+        ' aria-pressed="' + on + '" tabindex="' + (on ? 0 : -1) + '" aria-label="' + R.esc(f.court + ", " + d.nom + " : " + R.STATUTS[code].lib) + '">' + K.C(code) + '</button></td>';
+    }).join("") + '<td class="pend">' + K.C(R.statutFonds(f.id, i)) + '</td></tr>').join("");
+  const onb = D.pipeline.filter(p => p.nature === "Onboarding").map(p => '<tr><th scope="row"><b>' + R.esc(p.nom) + '</b><span>Onboarding</span></th>' +
+    '<td colspan="8" class="pend">' + R.t("Indicateurs paramétrés après le comité des risques. Étape en cours : " + p.etapes[p.cur].toLowerCase() + " (" + (p.cur + 1) + " sur " + p.etapes.length + ").") + '</td></tr>').join("");
+
+  const f = R.fondsById[loc.f], d = R.domById[loc.d], l = R.indicateursDe(loc.f, loc.d);
+  const det = '<div class="detail"><div class="dh"><h2>' + R.esc(f.nom) + ' - ' + R.esc(d.nom) + '</h2>' +
+    '<span>' + K.C(R.statutDomaine(loc.f, loc.d, i), true) + ' <span class="muted">au ' + R.date(K.arrete()) + ', ' + l.length + ' ' + K.pl(l.length, "indicateur", "indicateurs") + '</span></span></div>' +
+    l.map(K.article).join("") + '</div>';
+
+  h += '<div class="layout"><div class="panel"><h2 class="lbl">Matrice des risques</h2>' +
+    '<div class="scroll"><table class="mx">' + head + '<tbody>' + rows + '<tr class="grp"><th colspan="9">En cours d\'onboarding</th></tr>' + onb + '</tbody></table></div>' +
+    '<p class="legend">' + R.t("Statut le plus défavorable des indicateurs du domaine. Flèches du clavier pour se déplacer dans la matrice.") + '</p>' + det + '</div>' +
+    '<aside class="rail"><section><h2 class="lbl">À traiter</h2><ol class="plain">' + acts.map(K.todo).join("") + '</ol></section>' +
+    '<section><h2 class="lbl">Échéances à 30 jours</h2><ol class="plain">' + ech.map(K.echItem).join("") + '</ol>' +
+    '<p class="note"><button type="button" class="lk" data-vue-go="echeancier">Échéancier complet</button></p></section></aside></div>';
+  return h;
+}
+
+function choisir(f, d) {
+  loc.f = f; loc.d = d; K.rendu();
+  const c = document.querySelector('.cell[aria-pressed="true"]'); if (c) c.focus();
+}
+
+K.boot({
+  nom: "Console matrice", accueil: "Pilotage", accueilHtml,
+  ouvrir(id) { const x = R.indById[id]; loc.f = x.f; loc.d = x.d; },
+  click(e) {
+    const cell = e.target.closest(".cell[data-f]");
+    if (!cell) return false;
+    if (!cell.classList.contains("na")) choisir(cell.dataset.f, cell.dataset.d);
+    return true;
+  },
+  key(e) {
+    const cell = e.target.closest(".cell[data-f]");
+    const mv = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] }[e.key];
+    if (!cell || !mv) return false;
+    e.preventDefault();
+    const r = Math.max(0, Math.min(D.fonds.length - 1, Number(cell.dataset.r) + mv[0]));
+    const k = Math.max(0, Math.min(D.domaines.length - 1, Number(cell.dataset.k) + mv[1]));
+    const next = document.querySelector('.cell[data-r="' + r + '"][data-k="' + k + '"]');
+    if (!next) return true;
+    if (next.classList.contains("na")) next.focus(); else choisir(next.dataset.f, next.dataset.d);
+    return true;
+  }
+});
+})();
+</script>
+</body>
+</html>

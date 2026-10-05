@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk Studio Fonds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*@KITCSS*/
+/* Console 2 - par fonds. Question : où en est ce fonds ?
+   On identifie d'abord le véhicule (liste à gauche), puis on lit sa situation complète :
+   domaines, indicateurs, liquidité, actions et échéances du seul fonds choisi. */
+.c2 { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; margin-top: 18px; align-items: start; }
+.flist { min-width: 0; display: grid; gap: 16px; }
+.flist ul { list-style: none; margin: 0; padding: 0; }
+.fitem { width: 100%; display: grid; gap: 2px; text-align: left; background: none; border: 1px solid transparent; border-bottom-color: var(--rule);
+         padding: 9px 10px; cursor: pointer; }
+.fitem:hover { background: var(--hover); }
+.fitem[aria-current="true"] { background: var(--surface); border-color: var(--rule); }
+.fitem[aria-current="true"] b { color: var(--navy); }
+.fitem .seg { margin: 2px 0 0; }
+.main { display: grid; gap: 18px; min-width: 0; }
+.fh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 20px; }
+.fh h1 { margin: 0; font-size: 13pt; }
+.fh p { margin: 2px 0 0; }
+.fst { font-size: 10pt; }
+dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 22px; margin: 12px 0 0; }
+dl.facts dt { color: var(--muted); font-size: 8pt; }
+dl.facts dd { margin: 0; }
+.doms { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin: 16px 0 12px; padding-block: 8px; border-block: 1px solid var(--rule); }
+.dom { display: grid; gap: 1px; text-align: left; background: none; border: 0; padding: 6px 8px; cursor: pointer; min-width: 0; }
+.dom:hover { background: var(--hover); }
+.dom[aria-pressed="true"] { background: var(--sel); box-shadow: inset 0 0 0 1px var(--teal); }
+.dom:disabled { cursor: default; opacity: .55; }
+.dom:disabled:hover { background: none; }
+.dom .k { font-size: 8pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dom .ct { color: var(--muted); font-size: 8pt; }
+.sub { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sub .panel h2.lbl + * { margin-top: 0; }
+.steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; }
+.steps li { border-top: 3px solid var(--rule); padding-top: 6px; color: var(--muted); }
+.steps li.done { border-top-color: var(--bar); color: var(--ink); }
+.steps li.cur { border-top-color: var(--teal); color: var(--ink); font-weight: 700; }
+.steps li span { display: block; font-size: 8pt; font-weight: 400; color: var(--muted); }
+@media (max-width: 1000px) { .c2 { grid-template-columns: 1fr; } .sub { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .doms { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>/*@CORE*/</script>
+<script>/*@KIT*/</script>
+<script>
+(function () {
+"use strict";
+const R = window.RS, D = R.DATA, K = window.RK, st = K.st;
+const loc = { sel: null, dom: "", open: new Set() };
+
+function defaut() {
+  let best = D.fonds[0].id, rang = -1;
+  D.fonds.forEach(f => { const r = R.STATUTS[R.statutFonds(f.id, st.i)].rang; if (r > rang) { rang = r; best = f.id; } });
+  loc.sel = best;
+}
+
+function resume(id) {
+  const c = R.compte(st.i, [id]), parts = [];
+  if (c.DEP) parts.push(c.DEP + " " + K.pl(c.DEP, "dépassement", "dépassements"));
+  if (c.MAN) parts.push(c.MAN + " " + K.pl(c.MAN, "donnée manquante", "données manquantes"));
+  if (c.SURV) parts.push(c.SURV + " sous surveillance");
+  return parts.length ? parts.join(", ") : "Tous les indicateurs sont conformes";
+}
+
+function liste() {
+  const fonds = D.fonds.map(f => '<li><button type="button" class="fitem" data-sel="' + f.id + '" aria-current="' + (loc.sel === f.id) + '">' +
+    '<b>' + R.esc(f.nom) + '</b><span class="muted">' + R.esc(f.nature.split(",")[0]) + '</span>' +
+    '<span>' + K.C(R.statutFonds(f.id, st.i), true) + '</span><span class="muted">' + R.esc(resume(f.id)) + '</span></button></li>').join("");
+  const dossiers = nat => D.pipeline.filter(nat).map(p => '<li><button type="button" class="fitem" data-sel="' + p.id + '" aria-current="' + (loc.sel === p.id) + '">' +
+    '<b>' + R.esc(p.nom) + '</b><span class="muted">' + R.esc(p.nature) + ', étape ' + (p.cur + 1) + ' sur ' + p.etapes.length + '</span>' +
+    '<div class="seg" aria-hidden="true">' + p.etapes.map((e, k) => '<i class="' + (k < p.cur ? "done" : k === p.cur ? "cur" : "") + '"></i>').join("") + '</div></button></li>').join("");
+  return '<nav class="flist" aria-label="Fonds et dossiers">' +
+    '<section><h2 class="lbl">Fonds gérés</h2><ul>' + fonds + '</ul></section>' +
+    '<section><h2 class="lbl">Onboarding</h2><ul>' + dossiers(p => p.nature === "Onboarding") + '</ul></section>' +
+    '<section><h2 class="lbl">Due diligence et IRP</h2><ul>' + dossiers(p => p.nature !== "Onboarding") + '</ul></section></nav>';
+}
+
+function vueFonds(f) {
+  const i = st.i;
+  const doms = '<div class="doms" role="group" aria-label="Filtrer par domaine">' +
+    '<button type="button" class="dom" data-dom="" aria-pressed="' + (loc.dom === "") + '"><span class="k">Tous</span>' + K.C(R.statutFonds(f.id, i)) +
+    '<span class="ct">' + R.indicateursDe(f.id).length + ' indicateurs</span></button>' +
+    D.domaines.map(d => {
+      const n = R.indicateursDe(f.id, d.id).length, code = R.statutDomaine(f.id, d.id, i);
+      return '<button type="button" class="dom" data-dom="' + d.id + '" aria-pressed="' + (loc.dom === d.id) + '"' + (n ? '' : ' disabled') + '><span class="k" title="' + R.esc(d.nom) + '">' + R.esc(d.nom) + '</span>' +
+        K.C(code) + '<span class="ct">' + (n ? n + ' ' + K.pl(n, "indicateur", "indicateurs") : "Aucun") + '</span></button>';
+    }).join("") + '</div>';
+
+  const l = R.indicateursDe(f.id, loc.dom || null).slice()
+    .sort((a, b) => R.STATUTS[R.statut(b, i)].rang - R.STATUTS[R.statut(a, i)].rang || D.domaines.findIndex(d => d.id === a.d) - D.domaines.findIndex(d => d.id === b.d));
+  const rows = l.map(x => {
+    const m = R.marge(x, i), open = loc.open.has(x.id);
+    return '<tr class="go" data-row="' + x.id + '" tabindex="0" aria-expanded="' + open + '"><td class="nw">' + K.C(R.statut(x, i), true) + '</td>' +
+      '<td class="nw muted">' + R.esc(R.domById[x.d].nom) + '</td><td>' + R.t(x.lib) + '</td><td class="n">' + R.val(R.valeur(x, i), x.u) + '</td>' +
+      '<td class="n">' + K.seuil(x, "al") + '</td><td class="n">' + K.seuil(x, "lim") + '</td><td class="n">' + (m === null ? "-" : R.signe(m, x.u)) + '</td>' +
+      '<td class="nw muted">' + R.esc(R.tendance(x, i).lib) + '</td><td>' + K.spark(x, 84, 22) + '</td></tr>' +
+      (open ? '<tr class="det"><td colspan="9">' + K.article(x) + '</td></tr>' : '');
+  }).join("");
+
+  const acts = R.actionsOuvertes([f.id]).filter(a => a.f === f.id);
+  const echs = D.echeances.filter(e => e.f.indexOf(f.id) >= 0 && R.jours(D.meta.aujourdhui, e.date) >= 0);
+
+  return '<div class="panel"><div class="fh"><div><h1>' + R.esc(f.nom) + '</h1><p class="muted">' + R.t(f.nature) + '</p></div>' +
+    '<div class="fst">' + K.C(R.statutFonds(f.id, i), true) + ' <span class="muted">au ' + R.date(K.arrete()) + '</span></div></div>' +
+    '<dl class="facts"><div><dt>VL</dt><dd>' + R.val(f.encours, "EUR m") + ' au ' + R.date(f.dateVl) + '</dd></div>' +
+    '<div><dt>Fréquence de VL</dt><dd>' + R.esc(f.freq) + ', ' + R.esc(f.devise) + '</dd></div>' +
+    '<div><dt>Liquidité</dt><dd>' + R.t(f.liquidite) + '</dd></div>' +
+    '<div><dt>Situation</dt><dd>' + R.esc(resume(f.id)) + '</dd></div></dl>' +
+    doms + '<div class="scroll"><table class="list"><thead><tr><th>Statut</th><th>Domaine</th><th>Indicateur</th><th class="n">Valeur</th><th class="n">Alerte</th>' +
+    '<th class="n">Limite</th><th class="n">Marge</th><th>Tendance</th><th>Évolution</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + R.t("Du plus grave au moins grave. Sélectionner une ligne pour afficher la définition, le commentaire et l'action liée.") + '</p></div>' +
+    '<div class="sub"><div class="panel"><h2 class="lbl">Liquidité</h2>' + K.liqBlock(f.id) + '</div>' +
+    '<div class="panel"><h2 class="lbl">Actions du fonds</h2>' + (acts.length ? '<ol class="plain">' + acts.map(K.todo).join("") + '</ol>' : '<p class="muted">Aucune action ouverte.</p>') +
+    '<h2 class="lbl" style="margin-top:18px">Échéances du fonds</h2><ol class="plain">' + echs.map(K.echItem).join("") + '</ol></div></div>';
+}
+
+function vueDossier(p) {
+  const acts = D.actions.filter(a => a.pipe === p.id);
+  return '<div class="panel"><div class="fh"><div><h1>' + R.esc(p.nom) + '</h1><p class="muted">' + R.esc(p.nature) + '</p></div>' +
+    '<div class="fst">' + R.esc("Étape " + (p.cur + 1) + " sur " + p.etapes.length) + '</div></div>' +
+    '<ol class="steps">' + p.etapes.map((e, k) => '<li class="' + (k < p.cur ? "done" : k === p.cur ? "cur" : "") + '"><span>Étape ' + (k + 1) + '</span>' + R.esc(e) + '</li>').join("") + '</ol>' +
+    '<dl class="facts"><div><dt>Prochaine étape</dt><dd>' + R.esc(p.prochaine) + '</dd></div>' +
+    '<div><dt>Échéance</dt><dd>' + R.date(p.ech) + ', ' + R.esc(R.delai(p.ech)) + '</dd></div>' +
+    '<div><dt>Point d\'attention</dt><dd>' + R.t(p.point) + '</dd></div>' +
+    '<div><dt>Dossier</dt><dd>' + (p.url ? '<a href="' + p.url + '" target="_blank" rel="noopener">Ouvrir le dossier</a>' : '<span class="muted">Pas encore de studio</span>') + '</dd></div></dl>' +
+    (acts.length ? '<h2 class="lbl" style="margin-top:18px">Actions</h2><ol class="plain">' + acts.map(K.todo).join("") + '</ol>' : '') +
+    '<p class="note">' + R.t("Les indicateurs seront paramétrés après validation par le comité des risques ; le dossier prendra alors la même vue que les fonds gérés.") + '</p></div>';
+}
+
+function accueilHtml() {
+  if (!loc.sel) defaut();
+  const f = R.fondsById[loc.sel], p = R.pipeById[loc.sel];
+  return '<div class="c2">' + liste() + '<div class="main">' + (f ? vueFonds(f) : vueDossier(p)) + '</div></div>';
+}
+
+function basculer(id) {
+  if (loc.open.has(id)) loc.open.delete(id); else loc.open.add(id);
+  K.rendu();
+  const r = document.querySelector('tr[data-row="' + id + '"]'); if (r) r.focus();
+}
+
+K.boot({
+  nom: "Console par fonds", accueil: "Fonds", accueilHtml,
+  ouvrir(id) { const x = R.indById[id]; loc.sel = x.f; loc.dom = ""; loc.open.add(id); },
+  click(e) {
+    const s = e.target.closest("[data-sel]");
+    if (s) { if (loc.sel !== s.dataset.sel) { loc.sel = s.dataset.sel; loc.dom = ""; } K.rendu(); return true; }
+    const d = e.target.closest("[data-dom]");
+    if (d) { loc.dom = d.dataset.dom; K.rendu(); return true; }
+    const r = e.target.closest("tr[data-row]");
+    if (r) { basculer(r.dataset.row); return true; }
+    return false;
+  },
+  key(e) {
+    const r = e.target.closest("tr[data-row]");
+    if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); basculer(r.dataset.row); return true; }
+    return false;
+  }
+});
+})();
+</script>
+</body>
+</html>
