@@ -72,8 +72,8 @@ def build_priips_sheet(wb):
     S.block('A. PROXY COMPOSITE PAR LIGNE  ·  allocation cible')
     S.hdr(['Ligne','Poids','Proxy','TRI net cible','Vol. désmoothée','Choc 99 % 1 an','Perte sur l\'actif net (choc 99 %)','Devise','Choc stress test retenu','Perte sur l\'actif net (stress)','Lecture'])
     rows=[('MAPIF II','=W_MAPIF','Preqin Infrastructure','=Rend_MAPIF','=Vol_Infra','=Choc99_Infra','USD non couvert','=Choc_cap','Fonds fermé de secondaires : la VL suit le lissage des GP sous-jacents.'),
-          ('MSIG 3','=W_MSIG','Preqin Private Debt Direct Lending','=Rend_MSIG','=Vol_DL','=Choc99_DL','USD couvert (hypothèse DIC)','=Choc_dette','Dette senior et subordonnée ; le choc 99 % de l\'indice dépasse le choc retenu.'),
-          ('PG NGI','=W_PG','Preqin Infrastructure Value Added','=Rend_PG','=Vol_VA','=Choc99_VA','EUR couvert (classe H, hypothèse DIC)','=Choc_cap','Evergreen value add, levier jusqu\'à 40 % de la VL.'),
+          ('MSIG 3','=W_MSIG','Preqin Private Debt Direct Lending','=Rend_MSIG','=Vol_DL','=Choc99_DL','USD non couvert','=Choc_dette','Dette senior et subordonnée ; le choc 99 % de l\'indice dépasse le choc retenu.'),
+          ('PG NGI','=W_PG','Preqin Infrastructure Value Added','=Rend_PG','=Vol_VA','=Choc99_VA','EUR (classe H couverte)','=Choc_cap','Evergreen value add, levier jusqu\'à 40 % de la VL.'),
           ('Ares AGI','=W_ARES','60 % Infra, 20 % Direct Lending, 10 % monétaire, 10 % HY','=Rend_ARES','=0.6*Vol_Infra+0.2*Vol_DL+0.1*Vol_HY','=Z99*F{r}','EUR','=Cap_ARES*Choc_cap+(1-Cap_ARES)*Choc_dette','Mix equity et dette ; volatilité composite sans effet de diversification (prudent).'),
           ('Actifs liquides : monétaire','=Liq_mon_w','Taux monétaire','=TauxMon',0,0,'EUR',0,'Sans risque de marché.'),
           ('Actifs liquides : haut rendement','=Liq_hy_w','Morningstar LSTA (coté)','=Rend_HY','=Vol_HY','=Choc99_HY','EUR couvert','=Choc_dette','Seule ligne cotée ; poche limitée à 10 % par la règle interne.')]
@@ -85,9 +85,8 @@ def build_priips_sheet(wb):
     l=S.r-1
     r=S.row(['Total / pondéré',f'=SUM(C{f}:C{l})','',f'=SUMPRODUCT(C{f}:C{l},E{f}:E{l})',f'=SUMPRODUCT(C{f}:C{l},F{f}:F{l})','',f'=SUM(H{f}:H{l})','','',f'=SUM(K{f}:K{l})','Somme des pertes par ligne : borne haute, corrélations supposées égales à 1.'],fmts=[None,'0 %',None,'0.0 %','0.00 %',None,'0.0 %',None,None,'0.0 %'],key_cols=(6,9))
     name(wb,ws,'Rdt_cible_pond',f'E{r}'); name(wb,ws,'Vol_pond',f'F{r}'); name(wb,ws,'Perte99_AN',f'H{r}'); name(wb,ws,'Perte_stress_AN',f'K{r}')
-    r=S.row(['Perte de change sur l\'actif net - dollar - 15 % (hypothèse basse de change)','=W_USD_BAS*Choc_usd','','','','','','','','','MAPIF II seul en dollars non couverts.'],fmts=[None,'0.0 %']); name(wb,ws,'Perte_USD_bas',f'C{r}')
-    r=S.row(['Perte de change sur l\'actif net - dollar - 15 % (hypothèse haute de change)','=W_USD_HAUT*Choc_usd','','','','','','','','','MAPIF II, MSIG 3 USD et PG NGI non couverts.'],fmts=[None,'0.0 %']); name(wb,ws,'Perte_USD_haut',f'C{r}')
-    r=S.row(['Perte combinée valorisation et change (hypothèse basse)','=Perte_stress_AN+Perte_USD_bas','','','','','','','','','Scénario « valorisation et dollar » du moteur, avant effet de dénominateur.'],fmts=[None,'0.0 %'],key_cols=(1,)); name(wb,ws,'Perte_combinee',f'C{r}')
+    r=S.row(['Perte de change sur l\'actif net - dollar - 15 %','=W_USD*Choc_usd','','','','','','','','','MAPIF II et MSIG 3 en dollars non couverts (51 % de l\'actif net) ; PG NGI classe H couverte, Ares AGI en euros.'],fmts=[None,'0.0 %']); name(wb,ws,'Perte_USD',f'C{r}'); name(wb,ws,'Perte_USD_bas',f'C{r}')
+    r=S.row(['Perte combinée valorisation et change','=Perte_stress_AN+Perte_USD','','','','','','','','','Scénario « valorisation et dollar » du moteur, avant effet de dénominateur.'],fmts=[None,'0.0 %'],key_cols=(1,)); name(wb,ws,'Perte_combinee',f'C{r}')
     S.blank(); S.ncols=11
     S.block('B. INDICATEUR DE RISQUE  ·  annexe II du règlement délégué (UE) 2017/653')
     S.hdr(['Mesure','Proxy privé','Contrôle coté','Retenu','','','','','','','Lecture'])

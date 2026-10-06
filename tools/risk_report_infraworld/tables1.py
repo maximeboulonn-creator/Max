@@ -36,7 +36,7 @@ def build_limites(wb):
     row('KRI-07','Cinq premiers porteurs','Interne',0.40,'=S_top5_orange','À valider','Actif net','Rouge au-delà de 40 %.')
     row('KRI-08','Concentration par gérant de fonds cibles','Interne','À arrêter','À arrêter','Seuil à arrêter','Actif net','Aucune limite au prospectus ; 51 % chez Macquarie à l\'allocation cible. Proposition : 40 %, alerte 35 %.',None)
     row('KRI-09','Concentration par fonds cible','Interne','À arrêter','À arrêter','Seuil à arrêter','Actif net','34 % sur MAPIF II à l\'allocation cible. Proposition : 35 %, alerte 30 %.',None)
-    row('KRI-10','Exposition au dollar non couverte','Interne','À arrêter','À arrêter','Seuil à arrêter','Actif net','34 % à 68 % selon les véhicules retenus ; aucune couverture possible (IR-07).',None)
+    row('KRI-10','Exposition au dollar non couverte','Interne','À arrêter','À arrêter','Seuil à arrêter','Actif net','51 % de l\'actif net (MAPIF II et MSIG 3 en dollars) ; aucune couverture possible (IR-07).',None)
     row('KRI-11','Péremption des VL reçues des fonds cibles','Interne','À arrêter','À arrêter','Seuil à arrêter','Jours depuis la VL du fonds cible','VL trimestrielles et décalées pour MAPIF II et MSIG 3 ; mensuelles à 15-21 j.o. pour Ares et PG NGI.',None)
     S.block('C. SYNTHÈSE')
     r1=S.row(['','Limites et seuils recensés','=COUNTA(B7:B35)','','','','',''],fmts=[None,None,'0']); name(wb,ws,'Lim_total',f'D{r1}')
