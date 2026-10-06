@@ -119,7 +119,7 @@ def build_engine(wb):
         put(31,'MSIG 3 - appels',lambda t:f'=MIN({c(t-1)}{R(29)}*IF({c(t)}{R(1)}=1,1+MSIG_USD*{P("usd")},1),$C{R(29)}*(1+MSIG_USD*{P("usd")})*IF({c(t)}{R(1)}<=4,{P("p4")}/4,Appels_base))',None,'0.00')
         put(32,'PG NGI - capacité de rachat',lambda t:f'={c(t-1)}{R(22)}*Capacite_evg*IF({c(t)}{R(1)}<=4,{P("cevg")},{P("cpg")})',None,'0.00')
         put(33,'Ares AGI - capacité de rachat, nette de la déduction',lambda t:f'={c(t-1)}{R(23)}*Capacite_evg*IF({c(t)}{R(1)}<=4,{P("cevg")},{P("cares")})*(1-IF({c(t)}{R(1)}<=Deduc_trim,Deduc_ares,0))',None,'0.00')
-        put(34,'Trésorerie en début de trimestre',lambda t:f'={c(t-1)}{R(48)}',None,'0.00')
+        put(34,'Trésorerie en début de trimestre (poche HY choquée au 1er trimestre)',lambda t:f'={c(t-1)}{R(48)}*(1-IF({c(t)}{R(1)}=1,Liq_hy_w/W_LIQ*{P("cdet")},0))',None,'0.00')
         put(35,'Produits de trésorerie',lambda t:f'={c(t)}{R(34)}*Taux_treso/4',None,'0.00')
         put(36,'Distributions reçues',lambda t:f'=SUM({c(t)}{R(24)}:{c(t)}{R(27)})',None,'0.00')
         put(37,'Acomptes aux parts de distribution',lambda t:f'=IF(AND(Distrib_tension=1,OR({c(t)}{R(9)}>0.000001,{c(t-1)}{R(51)}<Liq_min,{c(t-1)}{R(15)}=1)),0,MIN(Dist_porteurs/4*Part_d*{c(t)}{R(6)},{c(t)}{R(36)}))',None,'0.00')

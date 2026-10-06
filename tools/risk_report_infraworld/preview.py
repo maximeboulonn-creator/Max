@@ -36,7 +36,7 @@ def build_preview(wb):
     p.row(['Liquidité structurelle','Élevé','=(ROUND((W_FERMES)*100,0)&" %")&" de l\'actif sans fenêtre avant échéance ; écart actif-passif de "&(ROUND(Ecart_TTL,0)&"")&" jours"',None,None,'Le plafonnement de 5 % est la seule digue ; au-delà de quatre dates, la suspension.'],merge=[(4,6)],h=30)
     p.row(['Stress tests','Élevé','=N_rouge&" scénarios rouges sur "&(N_vert+N_orange+N_rouge)&" : rachats de 15 % puis 20 %, crise combinée ; point de rupture à "&(SUBSTITUTE(ROUND((Rupture_rachats)*100,1)&"",".",",")&" %")&" par date"',None,None,'Décision 5 : séquencer les engagements ; rejouer sur l\'encours réel (R12).'],merge=[(4,6)],h=30)
     p.row(['Concentration','Élevé','=(ROUND((W_MACQ)*100,0)&" %")&" de l\'allocation chez Macquarie, "&(ROUND((W_MAPIF)*100,0)&" %")&" sur MAPIF II ; aucune limite au prospectus"',None,None,'Décision 4 : limites internes gérant 40 % et fonds cible 35 %.'],merge=[(4,6)],h=30)
-    p.row(['Marché, change et valorisation','Vigilance','="Dollar non couvert de "&(ROUND((W_USD_BAS)*100,0)&" %")&" à "&(ROUND((W_USD_HAUT)*100,0)&" %")&" de l\'actif ; VL trimestrielles décalées sur "&(ROUND((W_FERMES)*100,0)&" %")',None,None,'Décision 4 : limite de change ; décision 6 : revue des VL reçues.'],merge=[(4,6)],h=30)
+    p.row(['Marché, change et valorisation','Vigilance','="Dollar non couvert de "&(ROUND((W_USD_BAS)*100,0)&" %")&" à "&(ROUND((W_USD_HAUT)*100,0)&" %")&" de l\'actif ; perte à 99 % sur un an "&SUBSTITUTE(ROUND(Perte99_AN*100,1)&"",".",",")&" % ; SRI "&SRI&" sur 7 (VEV "&SUBSTITUTE(ROUND(VEV_cote*100,1)&"",".",",")&" %)"',None,None,'Décision 4 : limite de change ; décision 6 : revue des VL reçues ; chocs dette et dollar à relever (page 05).'],merge=[(4,6)],h=30)
     p.row(['Documentation et gouvernance','Élevé','="Préavis 91 jours au prospectus contre 180 dans la note de liquidité ; "&Lim_a_arreter&" seuils à arrêter, "&Lim_a_valider&" à valider ; douze écarts au registre"',None,None,'Décisions 1, 2 et 6 avant le dépôt du prospectus.'],merge=[(4,6)],h=30)
     p.row(['Verdict d\'ensemble','ÉLEVÉ','Fixé par la liquidité, les stress tests, la concentration et la documentation. Aucune limite du prospectus n\'est testable avant la première valeur liquidative.',None,None,'Lancement conditionné aux décisions 1 à 3 ; revue à la première VL.'],merge=[(4,6)],h=30)
     p.blank()
@@ -51,7 +51,7 @@ def build_preview(wb):
     p.hdr(['N°','Décision','','Proposition de la Fonction Risques','','Échéance'])
     for i in range(1,7):
         p.row([str(i),f'=Dec{i}',None,f'=DecP{i}',None,f'=DecE{i}'],merge=[(3,4),(5,6)],h=44,bold_first=False)
-    p.note('Les douze recommandations de la Fonction Risques et les points suivis sans décision figurent en onglet 5. Le corps du rapport (pages 01 à 07) documente chaque chiffre ; l\'annexe donne les sources et leur fraîcheur.')
+    p.note('Les douze recommandations de la Fonction Risques et les points suivis sans décision figurent en onglet 5. Le corps du rapport (pages 01 à 08) documente chaque chiffre ; l\'annexe donne les sources et leur fraîcheur.')
     p.pagebreak()
     # ---------- 01 SYNTHÈSE
     page(p,'01','Synthèse et caractéristiques du Fonds','Conclusion  ·  chiffres clés  ·  points d\'attention')
@@ -169,7 +169,38 @@ def build_preview(wb):
     p.note('Limites de la méthode : chocs de valorisation calibrés sur des indices Preqin corrigés du lissage (Geltner), sans historique propre ; comportement de rachat postulé, non modélisé ; capacité des fonds evergreen supposée pleine hors scénario au prorata ; cessions secondaires de parts de fonds fermés supposées possibles à 10 % de décote, ce qui est optimiste pour MAPIF II (accord du GP) et sans objet pour MSIG 3 (run-off). Niveau de confiance : moyen.',lines=4)
     p.pagebreak()
     # ---------- 05 FONDS CIBLES
-    page(p,'05','Les quatre fonds cibles','Conditions  ·  profil de risque initial  ·  points ouverts')
+    # ---------- 05 MARCHÉ, VALORISATION ET COÛTS (DIC PRIIPs)
+    page(p,'05','Marché, valorisation et coûts','Proxy composite  ·  indicateur de risque  ·  scénarios  ·  empilement des coûts - classeur KID PRIIPs v2.3, onglet 4b')
+    p.sec('PROXY COMPOSITE ET CHOCS PAR LIGNE   indices Preqin désmoothés (Geltner), contrôle coté S&P Global Infrastructure','Choc à 99 % sur un an = 2,326 × volatilité désmoothée ; le choc retenu est celui des stress tests (onglet 0). Perte en % de l\'actif net = poids × choc.')
+    p.hdr(['Ligne','Poids','TRI net cible','Vol. désmoothée','Choc 99 % 1 an','Choc stress retenu et perte sur l\'actif net'])
+    for i in range(6):
+        r=7+i
+        p.row([f"='4b PRIIPs'!B{r}",f"='4b PRIIPs'!C{r}",f"='4b PRIIPs'!E{r}",f"='4b PRIIPs'!F{r}",f"='4b PRIIPs'!G{r}",f"=(ROUND('4b PRIIPs'!J{r}*100,0)&\"{NB}%\")&\" de la ligne, soit \"&SUBSTITUTE(ROUND('4b PRIIPs'!K{r}*100,1)&\"\",\".\",\",\")&\"{NB}% de l'actif net\""],fmts=[None,PCT,PCT1,'0.00 %',PCT1],h=22)
+    p.row(['Portefeuille','=W_TOT','=Rdt_cible_pond','=Vol_pond','=Perte99_AN','="Perte en stress "&SUBSTITUTE(ROUND(Perte_stress_AN*100,1)&"",".",",")&" % ; avec dollar - 15 % : "&SUBSTITUTE(ROUND(Perte_combinee*100,1)&"",".",",")&" % (hypothèse basse de change)"'],fmts=[None,PCT,PCT1,'0.00 %',PCT1],h=30)
+    p.note('Lecture : les chocs à 99 % des indices désmoothés sont inférieurs au choc equity retenu dans les stress tests (7,8 % contre 20 %), mais supérieurs aux chocs dette (14,2 % contre 10 %) et change (18,2 % contre 15 %). La volatilité pondérée additionne les lignes sans diversification : borne haute. Le dollar non couvert reste le premier facteur de marché identifiable.')
+    p.blank()
+    p.sec('INDICATEUR DE RISQUE   règlement délégué (UE) 2017/653, annexe II')
+    p.hdr(['Mesure','Proxy privé','Contrôle coté','Retenu','Lecture',''])
+    p.row(['VEV','=VEV_priv','=VEV_cote','=MAX(VEV_priv,VEV_cote)','Le proxy privé désmoothé reste trop lisse : le contrôle coté fixe la VEV',None],fmts=[None,'0.00 %','0.00 %','0.00 %'],merge=[(6,7)])
+    p.row(['MRM puis SRI','=MRM','=MRM','=SRI','Relèvement de + 1 pour la valorisation trimestrielle et décalée des fonds fermés ; aucun relèvement pour la liquidité',None],fmts=[None,D,D,D],merge=[(6,7)],h=30)
+    p.row(['Facteur de tensions, 2 ans et 10 ans','=Stress_2','=Stress_10','-','Perte brute de 14 % à la fin du blocage et de 30 % sur la période recommandée, avant coûts',None],fmts=[None,'0.000','0.000'],merge=[(6,7)],h=30)
+    p.blank()
+    p.sec('SCÉNARIOS DE PERFORMANCE   part A1c, 10 000 € investis, catégorie 2')
+    p.hdr(['Scénario','2 ans, fin du blocage','10 ans, PDR','','Lecture',''])
+    p.row(['Tensions','=KID_A1_tens2','=KID_A1_tens10',None,'- 13,8 % puis - 8,2 % par an : perte de plus de la moitié du capital à 10 ans',None],fmts=[None,'# ##0 €','# ##0 €'],merge=[(4,5),(6,7)])
+    p.row(['Défavorable','-','=KID_A1_defav10',None,'+ 0,8 % par an : les coûts absorbent la quasi-totalité du rendement (fenêtre 12/2024 à 12/2025 ramenée)',None],fmts=[None,None,'# ##0 €'],merge=[(4,5),(6,7)],h=30)
+    p.row(['Intermédiaire','-','=KID_A1_interm10',None,'+ 8,7 % par an, dans la fourchette commerciale de 8 à 10 % ; 14,3 % avant coûts',None],fmts=[None,None,'# ##0 €'],merge=[(4,5),(6,7)])
+    p.row(['Coûts totaux à 10 ans (intermédiaire)','-','=KID_A1_cout10',None,'="Réduction du rendement de "&SUBSTITUTE(ROUND(RIY_A1*100,2)&"",".",",")&" % par an pour A1c, "&SUBSTITUTE(ROUND(RIY_A3*100,2)&"",".",",")&" % pour A3c"',None],fmts=[None,None,'# ##0 €'],merge=[(4,5),(6,7)],h=30)
+    p.blank()
+    p.sec('EMPILEMENT DES COÛTS   part A1, % de l\'actif net par an, détail en onglet 4b')
+    p.hdr(['Couche','Taux','Source','','',''])
+    for lab,nm,src in [('Commission de Gestion (Société de Gestion)','Fee_SGP','Prospectus art. 27.2.1 ; minimum 60 000 € par an'),('Commission de Conseil, parts A','Fee_CIF_A','Prospectus art. 27.2.2'),('Commission de Distribution, parts A1 et B1','Fee_Distrib','Prospectus art. 27.2.3'),('Prestataires (BFCM, CIC, CAC) à 50 M€','Fee_fixe/AN_cible','Offres du 25/03/2026 : 55 192 € par an'),('Fonds cibles : frais récurrents en transparence','LT_rec','DIC des gérants ou PPM ; Ares 3,00 % dont levier 1,25 %'),('Fonds cibles : carried interest ex ante','LT_carry','Cascade à la RHP, excédent au-dessus du hurdle'),('Coûts de transaction','LT_txn','DIC des fonds cibles, poche HY')]:
+        p.row([lab,f'={nm}',src,None,None,None],fmts=[None,'0.00 %'],aligns=[None,None,'left'],merge=[(4,7)],h=24)
+    p.row(['Total, part A1','=Cout_total_A1','="Hors droits d\'entrée (5 % au plus). Écart de RIY à 10 ans entre A1 et B3 : "&SUBSTITUTE(ROUND(RIY_ecart*100,2)&"",".",",")&" % par an"',None,None,None],fmts=[None,'0.00 %'],merge=[(4,7)],h=22)
+    p.note('="Les coûts cumulés absorbent "&ROUND(Cout_total_A1/Rdt_brut*100,0)&" % du rendement brut du proxy ("&SUBSTITUTE(ROUND(Rdt_brut*100,1)&"",".",",")&" %) : ils sont la première cause d\'écart entre l\'objectif commercial et le résultat net. Trois écarts documentaires à corriger dans le classeur DIC (R11) : date de lancement retenue au 30/09/2026 alors que le Fonds n\'est pas constitué, libellé de levier qui mentionne encore une ligne de crédit de 10 % et un plafond de 30 % supprimés du prospectus, ISIN des huit parts non renseignés alors que le prospectus les fixe."',lines=4)
+    p.pagebreak()
+
+    page(p,'06','Les quatre fonds cibles','Conditions  ·  profil de risque initial  ·  points ouverts')
     p.sec('CONDITIONS STRUCTURANTES   lecture des prospectus et PPM ; forme, stratégie et prestataires en onglet 4')
     p.hdr(['Terme','MAPIF II','MSIG 3 (USD)','PG NGI','Ares AGI ELTIF',''])
     for t,src,h in [('Statut',8,52),('Devise',9,40),('Rachats',12,80),('Plafonnement',13,80),('Pénalité de sortie',14,66),('Valeur liquidative',15,52),('Frais de gestion',16,52),('Performance',17,66),('Levier',18,80),('Ticket minimum',19,52),('SFDR',21,40)]:
@@ -190,7 +221,7 @@ def build_preview(wb):
     p.row(['Ares AGI ELTIF','Classe souscrite ; composition de l\'entrepôt d\'actifs ; limite ELTIF de rachat (27,3 %) ; levier non plafonné avant 2029 ; calendrier de la déduction de 24 mois',None,None,None,'Moyenne'],merge=[(3,6)],h=30)
     p.pagebreak()
     # ---------- 06 RISQUES NON QUANTIFIÉS
-    page(p,'06','Valorisation, contrepartie, opérationnel et gouvernance','Risques non quantifiés  ·  dispositif  ·  lacunes  ·  actions')
+    page(p,'07','Valorisation, contrepartie, opérationnel et gouvernance','Risques non quantifiés  ·  dispositif  ·  lacunes  ·  actions')
     p.sec('VALORISATION   art. 19 de la directive, art. 67 à 74 du règlement délégué')
     p.hdr(['Réf.','Risque','Exposition à l\'allocation cible','Dispositif et lacune','','Action'])
     p.row(['V-1','Dépendance aux VL des gérants cibles','="100 % de l\'actif investi ; "&(ROUND((W_FERMES)*100,0)&" %")&" valorisés au mieux trimestriellement avec décalage"','IPEV déclaré par les gérants ; aucune procédure de revue de la VL reçue, ni seuil de péremption',None,'R9 : procédure de revue et seuil KRI-11'],merge=[(5,6)],h=40)
@@ -212,7 +243,7 @@ def build_preview(wb):
     p.note('Aucun de ces points n\'est chiffré et aucun ne doit l\'être en l\'état : il n\'existe ni série, ni historique de perte, ni référence sectorielle qui permette une mesure défendable. Ils sont traités par le dispositif et les décisions, puis suivis au registre des incidents dès le lancement.')
     p.pagebreak()
     # ---------- 07 LIMITES ET DÉCISIONS
-    page(p,'07','Limites, décisions et conclusion','Suivi des limites  ·  décisions  ·  conclusion  ·  contrôles avant diffusion')
+    page(p,'08','Limites, décisions et conclusion','Suivi des limites  ·  décisions  ·  conclusion  ·  contrôles avant diffusion')
     p.sec('SUIVI DES LIMITES   référentiel en onglet 1')
     p.hdr(['Catégorie','Nombre','Cible','Statut','Ce que cela impose',''])
     p.row(['Limites et seuils recensés','=Lim_total','-','Information','Prospectus (14), seuils internes (11)',None],fmts=[None,D],merge=[(6,7)])
@@ -257,7 +288,7 @@ def build_preview(wb):
     p.blank()
     p.sec('SOURCES ET FRAÎCHEUR DES DONNÉES   détail en onglet DATA')
     p.hdr(['Source','Date','Ancienneté','Statut','Usage',''])
-    for i in range(12):
+    for i in range(13):
         r=6+i
         p.row([f'=DATA!B{r}',f'=DATA!C{r}',f'=DATA!D{r}&" j"',f'=DATA!F{r}',f'=DATA!G{r}',None],fmts=[None,'dd/mm/yyyy'],merge=[(6,7)],h=26)
     p.note('Toutes les valeurs de ce rapport découlent du bloc de paramètres de l\'onglet 0 et des calculs qui en dérivent. Aucune valeur n\'est ressaisie dans le document.')

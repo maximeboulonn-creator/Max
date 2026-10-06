@@ -70,7 +70,7 @@ RECS=[
  ('R8','Caler la première fenêtre de rachat sur la fin de la déduction Ares (24 mois)','Un rachat chez Ares avant 24 mois coûte 5 % de la ligne ; la première Date de Centralisation (31/03/2029 pour une constitution fin 2026) doit suivre les 24 mois de détention des parts Ares.','Fonction Risques, gestion de trésorerie','Au lancement'),
  ('R9','Écrire la procédure de revue des valeurs liquidatives reçues','Seuil de péremption des VL des fonds cibles (trimestrielles et décalées pour MAPIF II et MSIG 3), contrôle de cohérence, escalade en cas d\'écart. Calendrier Annexe IV tenant compte de l\'exercice MSIG 3 au 31/03.','Fonction Risques','T4 2026'),
  ('R10','Documenter la gestion du conflit d\'intérêts du Conseiller','Le Conseiller cumule conseil en investissement, distribution principale et faculté de révoquer la Société de Gestion (art. 3.1.2 à 3.1.5) ; accord préalable requis pour toute modification du prospectus.','Dirigeants effectifs, Conformité','T4 2026'),
- ('R11','Compléter le DIC et la synthèse commerciale','SRI 4 à reporter au prospectus et à la synthèse ; durée de détention 10 ans ; commission de rachat « néant » alors que le prospectus mentionne des droits de sortie de 5 % avant 2 ans dans des versions antérieures.','Société de Gestion, Conseiller','Avant la commercialisation'),
+ ('R11','Corriger le classeur DIC PRIIPs et la synthèse commerciale avant diffusion','Date de lancement retenue au 30/09/2026 alors que le Fonds n\'est pas constitué (scénarios et RIY à rejouer à la date réelle) ; libellé de levier citant encore une ligne de crédit de 10 % et un plafond de 30 % supprimés du prospectus ; ISIN des huit parts à renseigner ; SRI 4 et durée de détention 10 ans à reporter à l\'identique dans le prospectus et la synthèse.','Société de Gestion, Conseiller','Avant la commercialisation'),
  ('R12','Rejouer les stress tests sur l\'encours réel à chaque arrêté trimestriel et avant chaque décision de plafonnement','Hypothèses du classeur à arrêter en Comité : collecte, non-appelé de départ, décote de cession, part des parts de distribution.','Fonction Risques','Dès la première VL'),
 ]
 DEC=[
@@ -111,6 +111,7 @@ SOURCES=[
  ('Initial Risk Profile Openstone Infraworld et quatre fonds cibles',dt.date(2026,10,6),90,'Scores IRP (onglet 4).'),
  ('Classeur « Openstone underlying funds risk and liquidity terms »',dt.date(2026,9,14),90,'Conditions des fonds cibles et vingt écarts documentaires (onglet 4).'),
  ('Documents d\'informations clés PRIIPs, parts A1 à B3',dt.date(2026,9,29),60,'SRI 4, période de détention 10 ans, scénarios de performance, coûts.'),
+ ('Classeur KID PRIIPs Openstone Infraworld v2.3 (DIC du 22/09/2026)',dt.date(2026,9,22),60,'Proxies, volatilités désmoothées, VEV / MRM / SRI, scénarios et coûts par part, frais en transparence (onglets 0 et 4b).'),
  ('Prospectus AEFS SICAV, annexe 7 Ares Global Infrastructure ELTIF',dt.date(2026,8,11),180,'Termes Ares (visa CSSF du 11/08/2026).'),
  ('Prospectus Partners Group Evergreen SICAV, supplément 2',dt.date(2026,6,9),180,'Termes PG NGI (visa CSSF du 09/06/2026).'),
  ('PPM Macquarie Alliance Partners Infrastructure Fund II',dt.date(2026,4,30),180,'Termes MAPIF II ; LPA du 20/03/2026.'),

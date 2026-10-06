@@ -99,7 +99,7 @@ class Preview:
 class Sheet:
     """Onglet de calcul : B2 titre, B3 sous-titre gris, tableaux avec en-tête navy."""
     def __init__(s, ws, title, subtitle, widths):
-        s.ws=ws; setup(ws,widths); s.r=2
+        s.ws=ws; setup(ws,widths); s.r=2; s.ncols=max(1,len(widths)-1)
         c=ws.cell(2,2,title); c.font=Font(name='Calibri',size=10,bold=True,color=NAVY)
         c=ws.cell(3,2,subtitle); c.font=F(False,GREY); c.alignment=al('left',wrap=False)
         s.r=5
