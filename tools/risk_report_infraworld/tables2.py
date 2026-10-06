@@ -106,7 +106,7 @@ SOURCES=[
  ('Prospectus et Règlement Openstone Infraworld, projet',dt.date(2026,9,30),30,'Référentiel des limites, conditions de rachat, frais, gouvernance.'),
  ('Synthèse commerciale Openstone Infraworld v5.4',dt.date(2026,9,30),60,'Allocation cible, fonds sélectionnés, frais des fonds cibles, objectifs non garantis. Document de pré-commercialisation.'),
  ('Note de liquidité Openstone Infraworld',dt.date(2026,9,28),90,'Outils de gestion de la liquidité, seuils d\'alerte, programme de simulations. Préavis de 180 jours à recaler.'),
- ('Classeur « Openstone Stress Test liquidité »',dt.date(2026,9,24),90,'Résultats des neuf scénarios et des tests inversés (onglet 3).'),
+ ('Classeur « Openstone Stress Test liquidité »',dt.date(2026,9,24),90,'Mécanique du moteur (onglet 3b), reprise et recalculée ; aucun résultat importé.'),
  ('Registre des limites du prospectus (25/09/2026) et liste des douze écarts',dt.date(2026,10,5),30,'Onglet 1 et recommandation R2.'),
  ('Initial Risk Profile Openstone Infraworld et quatre fonds cibles',dt.date(2026,10,6),90,'Scores IRP (onglet 4).'),
  ('Classeur « Openstone underlying funds risk and liquidity terms »',dt.date(2026,9,14),90,'Conditions des fonds cibles et vingt écarts documentaires (onglet 4).'),

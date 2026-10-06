@@ -26,7 +26,7 @@ def build_preview(wb):
              ('GÉRANTS DES FONDS CIBLES',True,PALE,16),('Macquarie (MAPIF II, MSIG 3) · Partners Group (Next Generation Infrastructure) · Ares (Global Infrastructure ELTIF)',False,WHITE,30),
              ('DÉPOSITAIRE · DÉLÉGATAIRE COMPTABLE · COMMISSAIRE AUX COMPTES',True,PALE,16),('BFCM · CIC · APLITEC',False,WHITE,16),
              ('',False,WHITE,8),
-             ('Rapport établi sur la documentation : le Fonds n\'est pas constitué, aucune valeur liquidative ni aucun porteur. Toutes les grandeurs en euros sont des cibles.',False,PALE,30),
+             ('Rapport établi sur la documentation : le Fonds n\'est pas constitué, aucune valeur liquidative ni aucun porteur. Toutes les grandeurs en euros sont des cibles ; les stress tests sont calculés dans ce classeur.',False,PALE,30),
              ('',False,WHITE,10)])
     p.pagebreak()
     # ---------- 00 SYNTHÈSE COMITÉ
@@ -149,23 +149,23 @@ def build_preview(wb):
     p.row(['Suspension des souscriptions (art. 7.1.6)','Circonstances exceptionnelles ou capacité d\'investissement épuisée',None,'Sur décision de la Société de Gestion',None,'Évite la dilution de la poche en cas d\'appels retardés'],merge=[(3,4),(5,6)],h=30)
     p.pagebreak()
     # ---------- 04 STRESS TESTS
-    page(p,'04','Stress tests de liquidité','Scénarios  ·  tests inversés  ·  lecture - classeur du 24 septembre 2026')
-    p.sec('SCÉNARIOS DE LA NOTE DE LIQUIDITÉ   actif net 50 M€, départ 30/09/2028, 36 mois','Verdicts recalculés sur les seuils de la note (onglet 3) : rouge si file > 25 %, poche < 5 %, couverture < 1,0, résorption > 25 mois ou suspension ; orange si une date est plafonnée, poche < 15 %, couverture < 1,5 ou sur-engagement > 120 %.',h=38)
+    page(p,'04','Stress tests de liquidité','Scénarios  ·  tests inversés  ·  lecture - moteur en formules, onglet 3b')
+    p.sec('SCÉNARIOS DE LA NOTE DE LIQUIDITÉ   actif net cible, départ à la fin du blocage, 36 mois, calcul en formules (onglet 3b)','Verdicts sur les seuils de la note (onglet 0) : rouge si file > 25 %, poche < 5 %, couverture < 1,0, résorption > 25 mois ou suspension ; orange si une date est plafonnée, poche < 15 %, couverture < 1,5 ou sur-engagement > 120 %.',h=38)
     p.hdr(['Scénario','Dates plafonnées','File max','Poche min','Couverture 12 m','Verdict et lecture'])
-    for i in range(8):
+    for i in range(9):
         r=6+i
         p.row([f"='3 Scénarios'!B{r}",f"='3 Scénarios'!C{r}",f"='3 Scénarios'!D{r}",f"='3 Scénarios'!F{r}",f"='3 Scénarios'!G{r}",f"='3 Scénarios'!L{r}&\" - \"&'3 Scénarios'!M{r}"],fmts=[None,D,PCT1,PCT1,'0.00'],h=36)
-    p.row(['Bilan','=N_vert&" verts"','=N_orange&" orange"','=N_rouge&" rouges"','','Les scénarios rouges partagent une cause : des rachats supérieurs à 15 % sur deux dates consécutives'],h=24)
+    p.row(['Bilan','=N_vert&" verts"','=N_orange&" orange"','=N_rouge&" rouges"','','="Les scénarios rouges partagent une cause : des rachats très supérieurs au plafond sur une ou deux dates, ou des fonds evergreen qui ne servent plus ; premier triple gel en crise combinée : "&Gel_combine'],h=30)
     p.blank()
     p.sec('TESTS INVERSÉS')
     p.hdr(['Question','Réponse','','Lecture','',''])
     p.row(['Niveau de rachats persistants par date qui conduit à la suspension','=Rupture_rachats',None,'="Quatre dates plafonnées puis suspension fin 2030 ; sans plafonnement, "&SUBSTITUTE(ROUND(Rupture_cession,1)&"",".",",")&" M€ de cessions à 10 % de décote"',None,None],fmts=[None,PCT1],merge=[(3,4),(5,7)],h=30)
-    p.row(['Appels de fonds sur douze mois qui font passer la poche sous le plancher','=Rupture_appels',None,'Non-appelé de départ de 25 % de l\'actif net ; à 17,5 % la poche est épuisée et les cessions commencent',None,None],fmts=[None,PCT1],merge=[(3,4),(5,7)],h=30)
+    p.row(['Appels de fonds sur douze mois qui font passer la poche sous 10 %','=Rupture_appels',None,'Non-appelé de départ de 25 % de l\'actif net ; à 17,5 % la poche est épuisée et les cessions commencent',None,None],fmts=[None,PCT1],merge=[(3,4),(5,7)],h=30)
     p.row(['Taille maximale d\'un porteur unique sortant sans suspension ni cession','=Porteur_max',None,'Les autres porteurs demandent 2 % par date ; au-delà de 15 %, file non résorbée et suspension',None,None],fmts=[None,PCT],merge=[(3,4),(5,7)],h=30)
-    p.row(['Rachats égaux au plafond (5 % par date) sur toute la période','Poche 3,4 %',None,'Servis sans plafonnement, ils vident la poche sous 5 % en deux ans : le plafond ne protège pas quand la demande lui est exactement égale',None,None],merge=[(3,4),(5,7)],h=30)
+    p.row(['Rachats égaux au plafond (5 % par date) sur toute la période : poche minimale','=Persist5_poche',None,'Servis sans plafonnement, ils érodent la poche sous 5 % : le plafond ne protège pas quand la demande lui est exactement égale',None,None],fmts=[None,PCT1],merge=[(3,4),(5,7)],h=30)
     p.blank()
     p.sec('LECTURE DE LA GESTION DES RISQUES')
-    p.note('Le dispositif tient à trois conditions : une collecte qui ne s\'arrête pas (le scénario de base suppose 5 % par trimestre), des distributions des fonds cibles qui arrivent (le scénario de distributions divisées par deux suffit à passer sous le plancher) et un non-appelé contenu (le point de rupture est à 25 % de l\'actif net). Aucune de ces trois conditions ne dépend de la Société de Gestion seule. Les hypothèses structurantes - collecte, non-appelé de départ, décote de cession, part des parts de distribution - sont à arrêter en Comité des risques (R12), et le classeur est à recaler sur le préavis de 91 jours du prospectus du 30/09 (R1) : le préavis plus court ne change pas les résultats, il réduit de trois mois le temps de préparation de chaque date.',lines=7)
+    p.note('Le dispositif tient à trois conditions : une collecte qui ne s\'arrête pas (le scénario de base suppose 5 % par trimestre), des distributions des fonds cibles qui arrivent (le scénario de distributions divisées par deux suffit à passer sous le plancher) et un non-appelé contenu (le point de rupture est à 25 % de l\'actif net). Aucune de ces trois conditions ne dépend de la Société de Gestion seule. Les hypothèses structurantes - collecte, non-appelé de départ, décote de cession, part des parts de distribution - sont à arrêter en Comité des risques (R12), et le moteur est rejoué sur l\'encours réel dès la première valeur liquidative (R12). Le préavis de 91 jours du prospectus du 30/09 ne change pas les flux : il réduit de trois mois le temps de préparation de chaque date.',lines=7)
     p.note('Limites de la méthode : chocs de valorisation calibrés sur des indices Preqin corrigés du lissage (Geltner), sans historique propre ; comportement de rachat postulé, non modélisé ; capacité des fonds evergreen supposée pleine hors scénario au prorata ; cessions secondaires de parts de fonds fermés supposées possibles à 10 % de décote, ce qui est optimiste pour MAPIF II (accord du GP) et sans objet pour MSIG 3 (run-off). Niveau de confiance : moyen.',lines=4)
     p.pagebreak()
     # ---------- 05 FONDS CIBLES
@@ -235,6 +235,7 @@ def build_preview(wb):
     p.row(['Tranches Annexe IV bouclées','=Buckets_total',1,'=IF(ABS(Buckets_total-1)<0.0001,"Conforme","Erreur")','Onglet 2',None],fmts=[None,PCT,PCT],merge=[(6,7)])
     p.row(['Sources périmées','=Src_perimees',0,'=IF(Src_perimees<=0,"Conforme","Avertissement")','="Sur "&Src_total&" sources recensées (annexe)"',None],fmts=[None,D,D],merge=[(6,7)])
     p.row(['Note de liquidité alignée sur le prospectus','=Preavis_j&" jours"','180 jours','Avertissement','Écart de préavis : décision 1',None],merge=[(6,7)])
+    p.row(['Poids de départ du moteur bouclés','=Ws_TOT',1,'=IF(ABS(Ws_TOT-1)<0.0001,"Conforme","Erreur")','Onglet 0, bloc des lignes du portefeuille',None],fmts=[None,PCT,PCT],merge=[(6,7)])
     p.row(['Score IRP recalculé','=IRPc_Fonds','=IRP_Fonds','=IF(ABS(IRPc_Fonds-IRP_Fonds)<0.1,"Conforme","Erreur")','Onglet 4 contre classeur IRP du 06/10/2026',None],fmts=[None,'0.0','0.0'],merge=[(6,7)])
     p.note('Rapport établi par la fonction permanente de gestion des risques - Fundcraft France SAS. Document interne, ne pas diffuser.')
     p.pagebreak()

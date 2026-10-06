@@ -82,3 +82,66 @@ def build_params(wb):
     S.blank()
     S.note('Fiabilité : Élevée = texte contractuel ou classeur validé ; Moyenne = prévision, hypothèse interne ou document commercial. Les montants en euros sont des cibles : le Fonds n\'a ni valeur liquidative ni porteur à la date d\'arrêté.',6)
     return P
+
+def build_params_stress(wb, ws_name='0 Paramètres'):
+    """Bloc d'hypothèses du moteur de stress tests, ajouté en bas de l'onglet Paramètres."""
+    ws=wb[ws_name]
+    r=ws.max_row+2
+    from lib import F, fill, al, B_THIN, WHITE, NAVY, TEAL, INK, GREY
+    import datetime as dt
+    def block(text):
+        nonlocal r
+        c=ws.cell(r,2,text); c.font=F(True,WHITE); c.fill=fill(NAVY)
+        for col in range(3,8): ws.cell(r,col).fill=fill(NAVY)
+        r+=1
+    def row(key,label,val,unit,src,fiab,res='',fmt=None,derived=False):
+        nonlocal r
+        for i,v in enumerate([label,val,unit,src,fiab,res]):
+            c=ws.cell(r,2+i,v); c.font=F(False,INK); c.alignment=al('left',v='top')
+            if i==1 and fmt: c.number_format=fmt
+            if i==1 and not derived: c.fill=fill('FFF8F2')
+        for col in range(2,8): ws.cell(r,col).border=B_THIN
+        name(wb,ws,key,f'C{r}'); r+=1
+    block('HYPOTHÈSES DU MOTEUR DE STRESS TESTS  ·  onglet 3b, reprises de la note de liquidité § 6 et du classeur du 24/09/2026')
+    row('Date_depart','Date de départ de la projection',dt.date(2028,9,30),'date','Fin du blocage des premières souscriptions (hypothèse de constitution fin 2026)','Moyenne','Toutes les parts sont supposées rachetables dès le départ : prudent.','dd/mm/yyyy')
+    row('NA_depart','Non-appelé de départ (régime normal)',0.15,'% AN','Note de liquidité § 6 et § 7 : non-appelé ramené à 15 % de l\'actif net à la fin du blocage','Moyenne','Soit un sur-engagement de 115 % au départ.','0 %')
+    row('Part_MAPIF_NA','Part de MAPIF II dans le non-appelé',0.60,'%','Hypothèse (classeur du 24/09)','Moyenne','','0 %')
+    row('Appels_base','Appels en régime normal, part du non-appelé initial par trimestre','=1/12','% / trim.','Tirage sur trois ans','Moyenne','',"0.0 %",derived=True)
+    row('Capacite_evg','Capacité de rachat des fonds evergreen, part de la ligne par trimestre',0.05,'% / trim.','Supplément 2 PG NGI ; annexe 7 Ares','Élevée','Gate de 5 % par trimestre chez chaque fonds cible.','0 %')
+    row('Decote','Décote de cession secondaire',0.10,'%','Hypothèse','Faible','Optimiste pour MAPIF II (accord du GP), sans objet pour MSIG 3 (run-off). Sensibilité à 25 % dans la note.','0 %')
+    row('Poche_min_exec','Poche minimale après exécution au-delà du plafond',0.10,'% AN','Note de liquidité § 5','Moyenne','','0 %')
+    row('Seuil_reinv','Seuil de réinvestissement de la trésorerie dans les fonds evergreen',0.20,'% AN','Hypothèse','Moyenne','','0 %')
+    row('Taux_treso','Rendement de la trésorerie',0.025,'par an','Classeur DIC','Moyenne','','0.0 %')
+    row('Taux_emprunt','Taux d\'emprunt',0.0,'par an','Sans objet : aucun emprunt','Élevée','','0.0 %')
+    row('Frais_an','Frais du Fonds, toutes parts',0.02,'% AN / an','Prospectus art. 27, moyenne des parts, frais des fonds cibles exclus (dans les rendements nets)','Moyenne','','0.00 %')
+    row('Rachats_norm','Rachats demandés en régime normal, par date',0.02,'% AN','Hypothèse','Faible','Aucun historique : taux postulé.','0 %')
+    row('Collecte_norm','Collecte en régime normal, par trimestre',0.05,'% AN','Prévision du Conseiller, à confirmer','Faible','Nulle dans tous les scénarios de crise.','0 %')
+    row('Dist_porteurs','Acompte cible des parts de distribution',0.05,'% AN / an','Synthèse : 4 à 6 % ; DIC : 5 %','Moyenne','','0 %')
+    row('Part_d','Part des parts de distribution dans l\'actif net',0.20,'% AN','Hypothèse','Faible','','0 %')
+    row('Distrib_tension','Acomptes suspendus en cas de file, de poche sous le plancher ou de suspension (1 = oui)',1,'1/0','Note de liquidité § 7 ; prospectus art. 14 (examen discrétionnaire)','Élevée','')
+    row('Deduc_ares','Déduction de sortie Ares (parts détenues moins de 24 mois)',0.05,'%','Annexe 7 : Early Redemption Deduction','Élevée','','0 %')
+    row('Deduc_trim','Trimestres de projection concernés par la déduction Ares',4,'trim.','Hypothèse : à caler sur les dates de souscription Ares','Moyenne','')
+    row('MSIG_USD','MSIG 3 détenu en dollars (1 = oui)',0,'1/0','Hypothèse : fonds EUR retenu ; le PPM lu est celui du fonds USD','Faible','Si 1, l\'exposition dollar monte à 51 % hors PG NGI.')
+    row('Top5','Part des cinq premiers porteurs',0.35,'% AN','Seuil orange des indicateurs','Faible','Aucun registre : hypothèse de structure du passif.','0 %')
+    row('Choc_cap','Choc de valorisation retenu, capital infrastructure',0.20,'%','Note de liquidité § 6 ; indices Preqin corrigés du lissage','Moyenne','Supérieur au choc à 99 % à un an des indices désamorcés (7,8 à 9,9 %).','0 %')
+    row('Choc_dette','Choc de valorisation retenu, dette infrastructure',0.10,'%','Note de liquidité § 6','Moyenne','','0 %')
+    row('Choc_usd','Variation du dollar dans les scénarios de change',0.15,'%','Note de liquidité § 6','Moyenne','Signe selon le scénario.','0 %')
+    block('LIGNES DU PORTEFEUILLE  ·  rendement net annuel, distribution annuelle, part en capital (classeur DIC et documents des fonds cibles)')
+    row('Rend_MAPIF','MAPIF II - rendement net annuel',0.0909,'par an','Classeur DIC ; TRI net cible 12 à 15 % avant frais du Fonds','Faible','','0.00 %')
+    row('Dist_MAPIF','MAPIF II - distribution annuelle',0.06,'par an','Hypothèse (secondaires matures)','Faible','','0.00 %')
+    row('Cap_MAPIF','MAPIF II - part en capital',1,'%','Equity','Élevée','','0 %')
+    row('Rend_MSIG','MSIG 3 - rendement net annuel',0.0869,'par an','Classeur DIC ; TRI net cible 8 à 12 %','Faible','','0.00 %')
+    row('Dist_MSIG','MSIG 3 - distribution annuelle',0.07,'par an','PPM : revenu distribué trimestriellement','Moyenne','','0.00 %')
+    row('Cap_MSIG','MSIG 3 - part en capital',0,'%','Dette','Élevée','','0 %')
+    row('Rend_PG','PG NGI - rendement net annuel',0.1021,'par an','Classeur DIC','Faible','','0.00 %')
+    row('Dist_PG','PG NGI - distribution annuelle',0.02,'par an','Hypothèse','Faible','Imputée sur le gate du fonds cible.','0.00 %')
+    row('Cap_PG','PG NGI - part en capital',1,'%','Equity','Élevée','','0 %')
+    row('Rend_ARES','Ares AGI - rendement net annuel',0.0794,'par an','Classeur DIC','Faible','','0.00 %')
+    row('Dist_ARES','Ares AGI - distribution annuelle',0.05,'par an','Fiche : distributions mensuelles attendues','Moyenne','','0.00 %')
+    row('Cap_ARES','Ares AGI - part en capital',0.7,'%','Mix equity et dette','Moyenne','','0 %')
+    row('Ws_MAPIF','MAPIF II - poids de départ (cible moins non-appelé)','=W_MAPIF-NA_depart*Part_MAPIF_NA','% AN','dérivé','-','La part non encore appelée est portée par les fonds evergreen en attendant.','0.0 %',derived=True)
+    row('Ws_MSIG','MSIG 3 - poids de départ','=W_MSIG-NA_depart*(1-Part_MAPIF_NA)','% AN','dérivé','-','','0.0 %',derived=True)
+    row('Ws_PG','PG NGI - poids de départ','=W_PG+NA_depart/2','% AN','dérivé','-','','0.0 %',derived=True)
+    row('Ws_ARES','Ares AGI - poids de départ','=W_ARES+NA_depart/2','% AN','dérivé','-','','0.0 %',derived=True)
+    row('Ws_LIQ','Actifs liquides - poids de départ','=W_LIQ','% AN','dérivé','-','','0.0 %',derived=True)
+    row('Ws_TOT','Total des poids de départ','=Ws_MAPIF+Ws_MSIG+Ws_PG+Ws_ARES+Ws_LIQ','% AN','dérivé','-','Doit boucler à 100 %.','0 %',derived=True)

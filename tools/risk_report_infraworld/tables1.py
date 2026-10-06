@@ -94,66 +94,8 @@ def build_liquidite(wb):
     r=S.row(['Poche liquide / plafond annuel','=W_LIQ/Gate_annuel',1.0,'=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Une année de plafond servie sur la seule poche.'],fmts=[None,'0.0"x"','0.0"x"']); name(wb,ws,'Couv_poche_annuel',f'C{r}'); name(wb,ws,'Couv_poche_annuel_c',f'D{r}'); name(wb,ws,'Couv_poche_annuel_s',f'E{r}')
     r=S.row(['Capacité de rachat semestrielle des fonds evergreen','=W_EVER*0.05*2','','','','','Deux trimestres à 5 % de chaque ligne evergreen, hors gate chez les fonds cibles.'],fmts=[None,'0.0 %']); name(wb,ws,'Cap_evergreen',f'C{r}')
     r=S.row(['Capacité evergreen / plafond par date','=Cap_evergreen/Gate',1.0,'=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Les deux lignes evergreen ne financent pas seules une date de plafond.'],fmts=[None,'0.0"x"','0.0"x"'],key_cols=(1,)); name(wb,ws,'Couv_evergreen_gate',f'C{r}'); name(wb,ws,'Couv_evergreen_gate_c',f'D{r}'); name(wb,ws,'Couv_evergreen_gate_s',f'E{r}')
-    r=S.row(['Ressources à douze mois / plafond annuel (classeur de stress tests)',2.96,1.5,'=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Classeur du 24/09/2026 : poche, distributions et rachats evergreen sur 12 mois, départ 30/09/2028.'],fmts=[None,'0.00"x"','0.0"x"'],input_cols=(1,)); name(wb,ws,'Ressources_12m',f'C{r}'); name(wb,ws,'Ressources_12m_c',f'D{r}'); name(wb,ws,'Ressources_12m_s',f'E{r}')
-    r=S.row(['Couverture de liquidité à douze mois au départ (nette des appels, frais et acomptes)',2.38,'=S_couv_vert','=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Même classeur ; seuil vert 1,5.'],fmts=[None,'0.00"x"','0.0"x"'],input_cols=(1,)); name(wb,ws,'Couv_12m',f'C{r}'); name(wb,ws,'Couv_12m_c',f'D{r}'); name(wb,ws,'Couv_12m_s',f'E{r}')
+    r=S.row(['Ressources à douze mois / plafond annuel (moteur, scénario de base, départ)','=Eng_Res0',1.5,'=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Poche, distributions et capacités evergreen des quatre trimestres suivants, rapportées à deux dates de plafond.'],fmts=[None,'0.00"x"','0.0"x"']); name(wb,ws,'Ressources_12m',f'C{r}'); name(wb,ws,'Ressources_12m_c',f'D{r}'); name(wb,ws,'Ressources_12m_s',f'E{r}')
+    r=S.row(['Couverture de liquidité à douze mois au départ (nette des appels, frais et acomptes)','=Eng_Couv0','=S_couv_vert','=IF(C{0}>=D{0},"Respectée","Surveillance")'.format(S.r),'','','Moteur de l\'onglet 3b, scénario de base ; seuil vert 1,5 (KRI-04).'],fmts=[None,'0.00"x"','0.0"x"']); name(wb,ws,'Couv_12m',f'C{r}'); name(wb,ws,'Couv_12m_c',f'D{r}'); name(wb,ws,'Couv_12m_s',f'E{r}')
     S.blank(); S.ncols=7
-    S.note('Convention TTL : délai complet pour disposer du cash, préavis et règlement compris ; une position sans fenêtre garantie est classée au-delà de 365 jours. Les délais des fonds cibles sont ceux du classeur de stress tests du 24/09/2026 ; le passif est recalculé sur le préavis contractuel du projet du 30/09/2026 (91 jours), là où la note de liquidité retenait 180 jours.')
+    S.note('Convention TTL : délai complet pour disposer du cash, préavis et règlement compris ; une position sans fenêtre garantie est classée au-delà de 365 jours. Les délais des fonds cibles reprennent la lecture des documents contractuels (onglet 4) ; le passif est recalculé sur le préavis contractuel du projet du 30/09/2026 (91 jours), là où la note de liquidité retenait 180 jours.')
 
-def build_scenarios(wb):
-    ws=wb.create_sheet('3 Scénarios')
-    S=Sheet(ws,'STRESS TESTS DE LIQUIDITÉ - résultats du classeur du 24/09/2026 et verdicts',
-            'Projection trimestrielle sur 36 mois à partir du 30/09/2028, actif net de 50 M€, allocation cible, plafond 5 % par date, 4 dates au plus. Valeurs importées ; verdicts recalculés sur les seuils de la note de liquidité.',
-            {'A':2,'B':40,'C':11,'D':11,'E':12,'F':11,'G':12,'H':12,'I':11,'J':11,'K':12,'L':10,'M':44})
-    S.hdr(['Scénario','Dates plaf.','File max','Résorption (mois)','Poche min','Couv. 12 m min','Sur-eng. max','Change max','Cession (M€)','Suspension','Verdict','Lecture'])
-    def verdict(r):
-        return (f'=IF(OR(D{r}>S_file_rouge,F{r}<S_poche_rouge,G{r}<S_couv_rouge,E{r}>S_resorption_rouge,K{r}<>"-"),"Rouge",'
-                f'IF(OR(C{r}>0,F{r}<Liq_min,G{r}<S_couv_vert,H{r}>S_sureng_orange),"Orange","Vert"))')
-    data=[('Base : rachats 2 % par date, collecte 5 % par trimestre',0,0,0,0.1637,2.47,0.968,0.220,0,'-','Régime de croisière : aucune date plafonnée, poche au-dessus du plancher.'),
-          ('Adverse : rachats de 10 % sur deux dates',4,0.1049,24,0.0761,1.148,1.022,0.343,0,'-','Quatre dates plafonnées, file résorbée en 24 mois ; poche sous le plancher pendant la résorption.'),
-          ('Extrême : rachats de 15 % puis 20 %',4,0.2616,99,0.0761,0.683,1.022,0.342,0,'12/2030','File de 26 % non résorbée ; suspension examinée à la 5e date (fin 2030).'),
-          ('Concentration : sortie des cinq premiers porteurs (35 %)',0,0,0,0.158,3.69,0.978,0.289,0,'-','Servi sous plafonnement ordinaire ; les autres porteurs demandent 2 % par date.'),
-          ('Distributions des fonds cibles divisées par deux et retardées d\'un an',0,0,0,0.1218,2.10,0.999,0.348,0,'-','Poche entamée par les appels de fonds non compensés.'),
-          ('Appels de fonds accélérés, dollar + 15 %',0,0,0,0.1323,1.99,1.005,0.358,0,'-','Appels de MAPIF II renchéris par le dollar ; sur-engagement au-dessus de 100 %.'),
-          ('Valorisation - 20 % (capital), - 10 % (dette), dollar - 15 %',0,0,0,0.1489,2.19,0.973,0.288,0,'-','Poche juste sous le plancher par effet de dénominateur.'),
-          ('Crise combinée : chocs de passif et d\'actif simultanés',4,0.2609,99,0,0.172,1.078,0.334,6.61,'12/2030','Poche épuisée dès 2029, cessions secondaires de 6,6 M€ à 10 % de décote, suspension fin 2030, triple gel dès 12/2028.')]
-    f=S.r
-    for t in data:
-        r=S.r
-        S.row([t[0],t[1],t[2],(t[3] if t[3]!=99 else 99),t[4],t[5],t[6],t[7],t[8],t[9],verdict(r),t[10]],
-              fmts=[None,'0','0.0 %','0','0.0 %','0.00','0 %','0 %','0.00',None,None],h=30,input_cols=range(1,10))
-    l=S.r-1
-    r=S.row(['Scénarios verts',f'=COUNTIF(L{f}:L{l},"Vert")','','','','','','','','','',''],fmts=[None,'0']); name(wb,ws,'N_vert',f'C{r}')
-    r=S.row(['Scénarios orange',f'=COUNTIF(L{f}:L{l},"Orange")','','','','','','','','','',''],fmts=[None,'0']); name(wb,ws,'N_orange',f'C{r}')
-    r=S.row(['Scénarios rouges',f'=COUNTIF(L{f}:L{l},"Rouge")','','','','','','','','','',''],fmts=[None,'0'],key_cols=(1,)); name(wb,ws,'N_rouge',f'C{r}')
-    for i,nm in enumerate(['Sc_base','Sc_adverse','Sc_extreme','Sc_top5','Sc_distrib','Sc_appels','Sc_valo','Sc_combine']):
-        name(wb,ws,nm,f'L{f+i}')
-    name(wb,ws,'Sc_combine_cession',f'J{f+7}'); name(wb,ws,'Sc_extreme_file',f'D{f+2}'); name(wb,ws,'Sc_adverse_poche',f'F{f+1}'); name(wb,ws,'Sc_adverse_resorption',f'E{f+1}')
-    S.note('Résorption « 99 » : file non résorbée à l\'horizon de 36 mois. Les scénarios reprennent la note de liquidité § 6 ; le scénario « fonds evergreen au prorata » n\'est pas restitué par le tableau de bord du classeur et reste à documenter.',12)
-    S.blank()
-    S.block('TESTS INVERSÉS')
-    S.hdr(['Rachats persistants par date (% AN)','Dates plaf.','Suspension','Poche min (gate)','Cession sans gate (M€)','Décote (M€)','','','','','Verdict','Lecture'])
-    rev=[(0.05,0,'-',0.0338,0,0,'Demandes égales au plafond : servies sans plafonnement, la poche passe sous 5 % dès la deuxième année.'),
-         (0.075,4,'12/2030',0.0761,5.16,0.52,'Point de rupture : quatre dates plafonnées puis suspension ; sans gate, 5,2 M€ de cessions.'),
-         (0.10,4,'12/2030',0.0761,11.58,1.16,''),(0.125,4,'12/2030',0.0761,17.31,1.73,''),(0.15,4,'12/2030',0.0761,22.33,2.23,'')]
-    f=S.r
-    for t in rev:
-        r=S.r
-        S.row([t[0],t[1],t[2],t[3],t[4],t[5],'','','','',f'=IF(OR(D{r}<>"-",E{r}<S_poche_rouge),"Rouge",IF(C{r}>0,"Orange","Vert"))',t[6]],fmts=['0.0 %','0',None,'0.0 %','0.00','0.00'],h=26,input_cols=range(0,6))
-        if t[0]==0.075: name(wb,ws,'Rupture_cession',f'F{r}')
-    r=S.row(['Point de rupture (suspension ou cession)',0.075,'','','','','','','','','',''],fmts=[None,'0.0 %'],key_cols=(1,)); name(wb,ws,'Rupture_rachats',f'C{r}')
-    S.blank()
-    S.hdr(['Appels de fonds à 12 mois (% AN)','Non-appelé départ','Poche min','Couv. 12 m min','Cession (M€)','','','','','','Verdict','Lecture'])
-    app=[(0.075,0.15,0.1397,2.08,0,''),(0.125,0.25,0.0747,1.50,0,'Poche sous le plancher de 15 %.'),(0.175,0.35,0,0.93,0.68,'Poche épuisée, cessions.'),(0.225,0.45,0,0.61,6.41,''),(0.45,0.45,0,0.45,12.39,'Tout le non-appelé tiré en un an.')]
-    for t in app:
-        r=S.r
-        S.row([t[0],t[1],t[2],t[3],t[4],'','','','','',f'=IF(OR(D{r}<S_poche_rouge,E{r}<S_couv_rouge),"Rouge",IF(OR(D{r}<Liq_min,E{r}<S_couv_vert),"Orange","Vert"))',t[5]],fmts=['0.0 %','0 %','0.0 %','0.00','0.00'],h=22,input_cols=range(0,5))
-    r=S.row(['Point de rupture : poche sous le plancher',0.125,'','','','','','','','','',''],fmts=[None,'0.0 %'],key_cols=(1,)); name(wb,ws,'Rupture_appels',f'C{r}')
-    S.blank()
-    S.hdr(['Sortie d\'un porteur unique (% AN)','Dates plaf.','File max','Résorption (mois)','Poche min','Suspension','','','','','Verdict','Lecture'])
-    port=[(0.10,2,0.052,12,0.101,'-',''),(0.15,4,0.104,24,0.0706,'-','Taille maximale sans suspension ni cession.'),(0.20,4,0.156,99,0.0761,'12/2030',''),(0.25,4,0.208,99,0.0761,'12/2030','')]
-    for t in port:
-        r=S.r
-        S.row([t[0],t[1],t[2],t[3],t[4],t[5],'','','','',f'=IF(OR(G{r}<>"-",E{r}>S_resorption_rouge),"Rouge",IF(C{r}>0,"Orange","Vert"))',t[6]],fmts=['0 %','0','0.0 %','0','0.0 %',None],h=22,input_cols=range(0,6))
-    r=S.row(['Sortie maximale d\'un porteur sans suspension',0.15,'','','','','','','','','',''],fmts=[None,'0 %'],key_cols=(1,)); name(wb,ws,'Porteur_max',f'C{r}')
-    S.blank(); S.ncols=12
-    S.note('Hypothèses du classeur : poche de 15 % au départ, non-appelé 15 % tiré sur trois ans, rachats evergreen à 5 % par trimestre, décote de cession 10 %, frais 2 % par an, acomptes 5 % sur 20 % de parts de distribution, toutes les parts rachetables dès le départ (prudent). Préavis retenu : 180 jours, à recaler sur les 91 jours du projet du 30/09/2026 ; un préavis plus court ne change ni la file ni les verdicts, il réduit le délai d\'information de la Société de Gestion avant chaque date.')
