@@ -3,6 +3,10 @@
 import datetime as dt,math,statistics
 from style import *
 from series import monthly_returns
+import sys,json
+SEL=int(sys.argv[1]) if len(sys.argv)>1 else 1
+RES=json.load(open(sys.argv[2])) if len(sys.argv)>2 and sys.argv[2] else None
+OUT=sys.argv[3] if len(sys.argv)>3 else "LST_MST_Openstone_Infraworld.xlsx"
 bk=Book(); wb=bk.wb
 T=8                      # dates de rachat semestrielles projetées
 PC=[L(3+t) for t in range(T)]   # colonnes C..J des périodes
@@ -29,7 +33,7 @@ prow('Structure','Fonds de fonds evergreen investissant en direct dans deux fond
 prow('Date d\'arrêté',dt.date(2026,10,6),'date','-','DateArrete',DATE)
 prow('Date de première VL (lancement)',dt.date(2026,12,31),'date','Hypothèse : constitution au T4 2026','Date_lancement',DATE,note='Pilote la fin du blocage et la phase du Fonds.')
 prow('Fin de la Période de Blocage = première date de rachat','=EDATE(Date_lancement,Blocage_mois)','date','Prospectus art. 7.2.2 : deux ans à compter de la souscription','Date_depart',DATE,inp=False)
-prow('Actif net au départ de la projection',50000000,'EUR','Objectif de collecte de la synthèse (50 M€)','AN_depart',EUR)
+prow('Actif net au départ de la projection','=INDEX(Tailles_AN,Taille_sel)','EUR','Taille retenue dans le bloc C','AN_depart',EUR,inp=False)
 prow('Phase du Fonds','=IF(YEARFRAC(Date_lancement,Date_depart)<3,"Montée en charge","Régime de croisière")','-','Dérivé','Phase',inp=False,note='En montée en charge, la concentration des porteurs domine le risque de plafonnement.')
 prow('Années depuis le lancement à la date de départ','=YEARFRAC(Date_lancement,Date_depart)','ans','Dérivé','Annees_lancement','0.0',inp=False)
 P.blank()
@@ -56,7 +60,34 @@ prow('Sur-engagement maximal',1.30,'% AN','Prospectus art. 23','Surengagement_ma
 prow('Emprunts et instruments dérivés','Interdits','-','Prospectus art. 22 ; aucune couverture de change possible','Emprunt')
 prow('Entreprises Cibles (co-investissements) au plus',0.30,'% AN','Prospectus art. 3','Entreprises_max',PCT0)
 P.blank()
-P.sec('C. ALLOCATION À LA FIN DU BLOCAGE ET TERMES DE LIQUIDITÉ DES LIGNES','Poids en % de l\'actif net au départ. Non-appelé : part de la ligne encore à appeler (fonds fermés). Gate par trimestre et pression des pairs : fonds evergreen. TTL : délai de conversion en cash en jours, par scénario. Décote : haircut de cession sur le marché secondaire.')
+P.sec('C. TAILLE DU FONDS AU LANCEMENT ET ALLOCATION EN EUROS','Le Fonds n\'est pas lancé sous 8 M€. Les fonds Macquarie exigent 10 M$ d\'engagement, dérogation écrite possible à 4 M. Règle d\'allocation : trésorerie 5 %, fonds HY 10 %, fonds fermés selon les engagements négociés, solde réparti à parts égales entre PG NGI et Ares AGI. Les engagements fermés sont appelés progressivement : la part appelée à la fin du blocage est un paramètre.')
+SIZES=[8,15,20,25,50]
+P.hdr(['Taille de lancement (M€)']+[f'{z} M€' for z in SIZES]+['Unité','','','','Commentaire'],h=18)
+r_sel=P.row(['Taille retenue pour les onglets de calcul (1 = 8 M€ … 5 = 50 M€)',SEL,None,None,None,None,'1-5',None,None,None,'Sélecteur : toute la projection se recalcule'],fmts=[None,D],inputs=(1,)); P.nm('Taille_sel',r_sel)
+r_an=P.row(['Actif net au lancement']+[z*1e6 for z in SIZES]+['EUR',None,None,None,'Hypothèse de collecte'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5)); bk.name('Tailles_AN',P.ws,f'$C${r_an}:$G${r_an}')
+r_cm=P.row(['Engagement MAPIF II']+[4e6,4e6,5e6,5e6,17e6]+['EUR',None,None,None,'Minimum 10 M$, dérogation à 4 M à obtenir par écrit ; 50 M€ : poids cible de la synthèse (34 %)'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5))
+r_cs=P.row(['Engagement MSIG 3']+[0,0,5e6,5e6,8.5e6]+['EUR',None,None,None,'Aucune ligne sous 20 M€'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5))
+r_pa=P.row(['Part des engagements fermés appelée à la fin du blocage',0.70,None,None,None,None,'%',None,None,None,'Tirage sur trois ans : deux tiers environ après deux ans'],fmts=[None,PCT0],inputs=(1,)); P.nm('Part_appelee',r_pa)
+r_fm=P.row(['MAPIF II - valeur appelée']+[f'={L(3+i)}{r_cm}*Part_appelee' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
+r_fs=P.row(['MSIG 3 - valeur appelée']+[f'={L(3+i)}{r_cs}*Part_appelee' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
+r_na=P.row(['Non-appelé des fonds fermés']+[f'=({L(3+i)}{r_cm}+{L(3+i)}{r_cs})*(1-Part_appelee)' for i in range(5)]+['EUR',None,None,None,'Sortie future, financée par la poche et les distributions'],fmts=[None]+[EUR]*5)
+r_ca=P.row(['Trésorerie (5 %)']+[f'={L(3+i)}{r_an}*Cash_cible' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
+r_hy=P.row(['Fonds HY UCITS (10 %)']+[f'={L(3+i)}{r_an}*(Liq_cible-Cash_cible)' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
+r_re=P.row(['Solde pour les fonds evergreen']+[f'={L(3+i)}{r_an}-{L(3+i)}{r_fm}-{L(3+i)}{r_fs}-{L(3+i)}{r_ca}-{L(3+i)}{r_hy}' for i in range(5)]+['EUR',None,None,None,'Doit rester positif'],fmts=[None]+[EUR]*5)
+r_pg=P.row(['PG NGI (moitié du solde)']+[f'={L(3+i)}{r_re}/2' for i in range(5)]+['EUR',None,None,None,'Minimum 1 M USD (classe I)'],fmts=[None]+[EUR]*5)
+r_ar=P.row(['Ares AGI (moitié du solde)']+[f'={L(3+i)}{r_re}/2' for i in range(5)]+['EUR',None,None,None,'Minimum 1 M€ (classe C)'],fmts=[None]+[EUR]*5)
+P.hdr(['Contrôles par taille']+[f'{z} M€' for z in SIZES]+['','','','',''],h=16)
+P.row(['Poids MAPIF II appelé (% AN)']+[f'={L(3+i)}{r_fm}/{L(3+i)}{r_an}' for i in range(5)]+['%'],fmts=[None]+[PCT]*5)
+P.row(['Engagement MAPIF II (% AN)']+[f'={L(3+i)}{r_cm}/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Concentration sur une ligne : limite interne proposée 35 % (KRI-09)'],fmts=[None]+[PCT]*5)
+P.row(['Sur-engagement (AN + non-appelé) / AN']+[f'=({L(3+i)}{r_an}+{L(3+i)}{r_na})/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Plafond 130 % (art. 23)'],fmts=[None]+[PCT0]*5)
+P.row(['Dollar non couvert (% AN)']+[f'=({L(3+i)}{r_fm}+{L(3+i)}{r_fs})/{L(3+i)}{r_an}' for i in range(5)]+['%'],fmts=[None]+[PCT]*5)
+P.row(['Frais totaux du Fonds (% AN, part A1)']+[f'=Frais_var+MAX(Fee_SGP,SGP_min/{L(3+i)}{r_an})-Fee_SGP+Frais_fixes/{L(3+i)}{r_an}' for i in range(5)]+['% / an',None,None,None,'Frais variables plus prestataires et minimum de la Société de Gestion rapportés à l\'encours'],fmts=[None]+[PCT2]*5)
+P.row(['Lancement possible (≥ 8 M€) et solde evergreen positif']+[f'=IF(AND({L(3+i)}{r_an}>=Taille_min,{L(3+i)}{r_re}>0,{L(3+i)}{r_pg}>=1000000),"Vert","Rouge")' for i in range(5)]+['',None,None,None,'Minimum de lancement et tickets minimaux'],fmts=[None])
+P.row(['Dérogation Macquarie nécessaire (engagement < 10 M)']+[f'=IF(OR(AND({L(3+i)}{r_cm}>0,{L(3+i)}{r_cm}<Ticket_Macquarie),AND({L(3+i)}{r_cs}>0,{L(3+i)}{r_cs}<Ticket_Macquarie)),"Oui, par écrit","Non")' for i in range(5)]+[''],fmts=[None])
+verdict_cf(P.ws,f'C{P.r-2}:G{P.r-2}')
+SZ=dict(an=r_an,cm=r_cm,cs=r_cs,fm=r_fm,fs=r_fs,na=r_na,ca=r_ca,hy=r_hy,re=r_re,pg=r_pg,ar=r_ar)
+P.blank()
+P.sec('C bis. ALLOCATION À LA FIN DU BLOCAGE ET TERMES DE LIQUIDITÉ DES LIGNES   (taille retenue)','Poids en % de l\'actif net au départ. Non-appelé : part de la ligne encore à appeler (fonds fermés). Gate par trimestre et pression des pairs : fonds evergreen. TTL : délai de conversion en cash en jours, par scénario. Décote : haircut de cession sur le marché secondaire.')
 hdr_r=P.hdr(['Ligne','Type','Poids','Non-appelé (% ligne)','Gate trim. (fonds)','Préavis fonds (jours)','TTL normal','TTL S2','TTL S3','TTL S4','Source'],h=30)
 LP={}  # line param cells
 line_defs=[
@@ -67,13 +98,15 @@ line_defs=[
  ('Fonds HY UCITS','Liquide',0.10,0,1,2,7,14,30,30,'OPCVM obligataire à VL quotidienne (prospectus art. 3)'),
  ('Trésorerie','Liquide',0.05,0,1,0,1,1,1,1,'Dépôts et monétaire ; cible 5 % fixée par la Fonction Risques'),
 ]
+szw={0:f'=INDEX($C${SZ["fm"]}:$G${SZ["fm"]},Taille_sel)/AN_depart',1:f'=INDEX($C${SZ["fs"]}:$G${SZ["fs"]},Taille_sel)/AN_depart',2:f'=INDEX($C${SZ["pg"]}:$G${SZ["pg"]},Taille_sel)/AN_depart',3:f'=INDEX($C${SZ["ar"]}:$G${SZ["ar"]},Taille_sel)/AN_depart',4:'=Liq_cible-Cash_cible',5:'=Cash_cible'}
+szna={0:f'=IF(INDEX($C${SZ["fm"]}:$G${SZ["fm"]},Taille_sel)>0,(1-Part_appelee)/Part_appelee,0)',1:f'=IF(INDEX($C${SZ["fs"]}:$G${SZ["fs"]},Taille_sel)>0,(1-Part_appelee)/Part_appelee,0)',2:0,3:0,4:0,5:0}
 for i,(nm_,typ,w,na,g,pre,t0,t2,t3,t4,src) in enumerate(line_defs):
-    r=P.row([nm_,typ,w,na,g,pre,t0,t2,t3,t4,src],fmts=[None,None,PCT0,PCT0,PCT0,D,D,D,D,D],inputs=(2,3,4,5,6,7,8,9),h=26)
+    r=P.row([nm_,typ,szw[i],szna[i],g,pre,t0,t2,t3,t4,src],fmts=[None,None,PCT,PCT0,PCT0,D,D,D,D,D],inputs=(4,5,6,7,8,9),h=26)
     LP[i]=dict(row=r,w=f'Paramètres!$D${r}',na=f'Paramètres!$E${r}',gate=f'Paramètres!$F${r}',pre=f'Paramètres!$G${r}',ttl=[f'Paramètres!${c}${r}' for c in 'HIJK'],typ=typ)
 r=P.row(['Total','', f'=SUM(D{LP[0]["row"]}:D{LP[5]["row"]})',None,None,None,None,None,None,None,'Doit être égal à 100 %'],fmts=[None,None,PCT0],key=(2,)); P.nm('W_total',r,4)
 P.nm('W_cash',LP[5]['row'],4); P.nm('W_HY',LP[4]['row'],4)
 P.blank()
-P.sec('C bis. HYPOTHÈSES PAR LIGNE : RENDEMENT, DISTRIBUTIONS, PROXY ET TRANSMISSION DES CHOCS','Rendement : TRI net cible du DIC. Distributions : % de la valeur par an. Proxy coté : composite du classeur des cours. Transmission : part du choc du proxy coté répercutée dans la VL de la ligne (1 pour un actif coté ; environ 0,5 pour une VL d\'expertise, rapport VEV privée / VEV cotée du DIC). Retard : part du choc reportée au semestre suivant. Dollar : part de la ligne en dollars non couverts.')
+P.sec('C ter. HYPOTHÈSES PAR LIGNE : RENDEMENT, DISTRIBUTIONS, PROXY ET TRANSMISSION DES CHOCS','Rendement : TRI net cible du DIC. Distributions : % de la valeur par an. Proxy coté : composite du classeur des cours. Transmission : part du choc du proxy coté répercutée dans la VL de la ligne (1 pour un actif coté ; environ 0,5 pour une VL d\'expertise, rapport VEV privée / VEV cotée du DIC). Retard : part du choc reportée au semestre suivant. Dollar : part de la ligne en dollars non couverts.')
 P.hdr(['Ligne','Rendement net annuel','Distributions annuelles','Proxy coté','Transmission','Retard (part au semestre suivant)','Dollar non couvert','Courbe en J (S3, année 1-3)','Haircut vente S2','Haircut vente S3','Haircut vente S4'],h=36)
 line_h=[('MAPIF II',0.135,0.06,'C1 Infrastructure cotée',0.5,0.5,1.0,-0.05,0.15,0.25,0.35),
         ('MSIG 3',0.11,0.07,'C3 Direct lending coté',0.5,0.5,1.0,0.0,0.15,0.25,0.35),
@@ -90,7 +123,13 @@ P.hdr(['Paramètre','Valeur','Unité','Source','','','','','','','Commentaire'])
 prow('Rachats demandés par date de rachat',0.02,'% AN','Hypothèse : aucun historique','Rachats_norm',PCT)
 prow('Collecte par semestre',0.10,'% AN','Prévision du Conseiller à confirmer ; nulle dans les scénarios S3 et S4','Collecte_norm',PCT)
 prow('Appels des fonds fermés par semestre',  '=1/6','part du non-appelé initial','Tirage sur trois ans','Appels_base',PCT,inp=False)
-prow('Frais totaux du Fonds (part A1)',0.0211,'% AN / an','Classeur DIC v2.3','Frais_an',PCT2)
+prow('Frais variables du Fonds hors prestataires (part A1 : gestion 0,18 %, conseil 1,07 %, distribution 0,75 %)',0.0200,'% AN / an','Prospectus art. 27 ; classeur DIC v2.3','Frais_var',PCT2)
+prow('Commission de gestion de la Société de Gestion',0.0018,'% AN / an','Prospectus art. 27.2.1','Fee_SGP',PCT2)
+prow('Minimum annuel de la Société de Gestion',60000,'EUR / an','Prospectus art. 27.2.1','SGP_min',EUR)
+prow('Prestataires (dépositaire, valorisateur, CAC) et frais fixes',55192,'EUR / an','Offres du 25/03/2026 (classeur DIC)','Frais_fixes',EUR)
+prow('Frais totaux du Fonds à la taille retenue','=Frais_var+MAX(Fee_SGP,SGP_min/AN_depart)-Fee_SGP+Frais_fixes/AN_depart','% AN / an','Dérivé','Frais_an',PCT2,inp=False,note='2,11 % à 50 M€ ; nettement plus à 8 M€ du fait des frais fixes.')
+prow('Taille minimale de lancement',8000000,'EUR','Décision de la Société de Gestion','Taille_min',EUR)
+prow('Ticket minimal des fonds Macquarie',10000000,'EUR (10 M$)','PPM MAPIF II et MSIG 3 ; dérogation écrite possible à 4 M','Ticket_Macquarie',EUR)
 prow('Trésorerie opérationnelle minimale',0.01,'% AN','Fonction Risques : plancher avant toute vente','Cash_min',PCT)
 prow('Trésorerie cible',0.05,'% AN','Fonction Risques (5 % de cash)','Cash_cible',PCT)
 prow('Poche liquide cible (trésorerie + fonds HY)',0.16,'% AN','Fonction Risques : un point au-dessus du minimum de 15 % de l\'art. 3','Liq_cible',PCT)
@@ -593,6 +632,30 @@ for d in [('Prospectus et Règlement Openstone Infraworld, projet',dt.date(2026,
     S.row(list(d),fmts=[None,DATE,None],h=26)
 S.blank()
 S.note('Règle de calibration des séries : rendements mensuels simples, composites équipondérés des titres disponibles (Brookfield exclu, INFR à partir de 2016), mois en cours exclu, rendements aberrants (|ln| > 0,6) ignorés. Écart-type semestriel = écart-type mensuel × √6 ; pires semestres sur fenêtres glissantes de six mois.',h=30)
+# ======================================================================= COMPARATIF DES TAILLES
+CP=Sheet(bk,'Comparatif tailles','COMPARATIF DES TAILLES DE LANCEMENT : 8, 15, 20, 25 ET 50 M€','Bloc A : allocation en formules (onglet Paramètres C). Bloc B : résultats du moteur pour chaque taille, obtenus par recalcul complet du classeur taille par taille (script tools/lst_mst_infraworld), valeurs figées à la date indiquée ; le sélecteur de l\'onglet Paramètres permet de rejouer une taille en direct.',
+        [2,46,14,14,14,14,14,40],ncols=7)
+CP.sec('A. ALLOCATION PAR TAILLE (formules)')
+CP.hdr(['Ligne']+[f'{z} M€' for z in SIZES]+['Lecture'],h=16)
+for lab,key,note in [('Actif net au lancement','an',''),('Engagement MAPIF II','cm','4 M sous dérogation jusqu\'à 15 M€ ; 5 M à 20 et 25 M€'),('Engagement MSIG 3','cs','Aucun sous 20 M€'),('MAPIF II appelé à la fin du blocage','fm',''),('MSIG 3 appelé à la fin du blocage','fs',''),('Non-appelé','na',''),('Trésorerie','ca','5 % de l\'actif net'),('Fonds HY UCITS','hy','10 % de l\'actif net'),('PG NGI','pg','Moitié du solde'),('Ares AGI','ar','Moitié du solde')]:
+    CP.row([lab]+[f'=Paramètres!{L(3+i)}{SZ[key]}' for i in range(5)]+[note],fmts=[None]+[EUR]*5)
+CP.hdr(['Poids en % de l\'actif net']+[f'{z} M€' for z in SIZES]+[''],h=16)
+for lab,key in [('MAPIF II (appelé)','fm'),('MSIG 3 (appelé)','fs'),('PG NGI','pg'),('Ares AGI','ar'),('Fonds HY UCITS','hy'),('Trésorerie','ca'),('Non-appelé','na')]:
+    CP.row([lab]+[f'=Paramètres!{L(3+i)}{SZ[key]}/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+[''],fmts=[None]+[PCT]*5)
+CP.row(['Engagement MAPIF II en % de l\'actif net']+[f'=Paramètres!{L(3+i)}{SZ["cm"]}/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Concentration : 50 % à 8 M€'],fmts=[None]+[PCT]*5,key=(1,2,3,4,5))
+CP.row(['Sur-engagement']+[f'=(Paramètres!{L(3+i)}{SZ["an"]}+Paramètres!{L(3+i)}{SZ["na"]})/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Plafond 130 %'],fmts=[None]+[PCT0]*5)
+CP.row(['Frais totaux (part A1)']+[f'=Frais_var+MAX(Fee_SGP,SGP_min/Paramètres!{L(3+i)}{SZ["an"]})-Fee_SGP+Frais_fixes/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Frais fixes rapportés à l\'encours'],fmts=[None]+[PCT2]*5)
+CP.blank()
+CP.sec('B. RÉSULTATS DU MOTEUR PAR TAILLE (valeurs figées)'+(f'   recalcul du {dt.date.today():%d/%m/%Y}' if RES else '   non renseigné : lancer le script'))
+if RES:
+    for code,lab,desc in SCEN:
+        CP.hdr([f'{code} {lab}']+[f'{z} M€' for z in SIZES]+['Lecture'],h=16)
+        for key,klab,fmt in [('creux','Creux de VL (MST)',PCT),('gated','Dates plafonnées ou suspendues',D),('file8','File résiduelle à la date 8 (% AN)',PCT),('susp','Première suspension',None),('poche','Poche liquide minimale (% AN)',PCT),('couv','Couverture à douze mois minimale',DEC),('cession','Cessions secondaires cumulées (EUR)',EUR),('pertes','Décotes réalisées (EUR)',EUR),('an8','Actif net à la date 8 / départ',PCT),('verdict','Verdict conjoint',None)]:
+            vals=[RES[str(k+1)][code][key] for k in range(5)]
+            r=CP.row([klab]+vals+[''],fmts=[None]+[fmt]*5,key=(1,2,3,4,5) if key=='verdict' else (),aligns=[None]+(['center']*5 if key=='verdict' else [None]*5))
+            if key=='verdict': verdict_cf(CP.ws,f'C{r}:G{r}')
+        CP.blank()
+    CP.note('Lecture : la taille modifie peu les mécanismes de passif (gate en % de l\'actif net) mais change la concentration (engagement MAPIF II jusqu\'à 50 % de l\'actif à 8 M€), le poids des frais fixes et l\'absence de MSIG 3 sous 20 M€. Les résultats de passif par taille sont proches ; les écarts viennent du non-appelé relatif et des frais.',h=30)
 # ======================================================================= TABLEAU DE BORD
 Dsh=Sheet(bk,'Tableau de bord','TABLEAU DE BORD LST ET MST - OPENSTONE INFRAWORLD, COMPARTIMENT I','="Date d\'arrêté : "&TEXT(DateArrete,"jj/mm/aaaa")',[2,44,15,15,15,15,44],ncols=6)
 Dsh.ws.cell(3,2).value=f'="Projection à partir de la fin du blocage ("&DAY(Date_depart)&"/"&RIGHT("0"&MONTH(Date_depart),2)&"/"&YEAR(Date_depart)&"), huit dates de rachat semestrielles, actif net de départ "&ROUND(AN_depart/1000000,0)&"{NB}M€. Phase : "&Phase&". Les cellules sont des formules vers les onglets de calcul."'
@@ -600,6 +663,7 @@ Dsh.sec('A. INDICATEURS DE TÊTE')
 Dsh.hdr(['Indicateur','Valeur','','','','Lecture'],h=16)
 def drow(label,f,fmt,note,key=True):
     r=Dsh.row([label,f,None,None,None,note],fmts=[None,fmt],key=(1,) if key else ()); return r
+drow('Taille de lancement retenue (sélecteur de l\'onglet Paramètres)','=AN_depart',EUR,'Comparatif des cinq tailles dans l\'onglet dédié')
 drow('Écart actif - passif en régime normal (jours)','=Ecart_TTL_N',D,'WATTL actif moins LTTL moyen ; porté par la poche liquide et le plafonnement')
 drow('Écart actif - passif en S3 (jours)','=Ecart_TTL_S3',D,'Justification structurelle du gate de 5 %')
 drow('Actifs liquides à 30 jours, normal / S3','=HQLA_N',PCT,'Trésorerie et fonds HY après haircut')
@@ -641,9 +705,9 @@ for a in ['Taux de rachat par scénario et collecte (Paramètres G) : aucun hist
           'Registre des porteurs hypothétique : à remplacer avant la première VL.']:
     Dsh.row([a],merge=[(2,7)],h=18,bold_first=False)
 # ----------------------------------------------------------------- order & save
-order=['Tableau de bord','Paramètres','ALP','LLP','LST Moteur','LST Reverse','Concentration','MST Données','MST Scénarios','Intégré','Sources']
+order=['Tableau de bord','Paramètres','Comparatif tailles','ALP','LLP','LST Moteur','LST Reverse','Concentration','MST Données','MST Scénarios','Intégré','Sources']
 wb._sheets=[wb[n] for n in order]
 for w in wb.worksheets:
     w.sheet_view.showGridLines=False; assert w.freeze_panes is None
     w.page_setup.orientation='landscape'; w.page_setup.fitToWidth=1; w.page_setup.fitToHeight=0; w.sheet_properties.pageSetUpPr.fitToPage=True
-out='LST_MST_Openstone_Infraworld.xlsx'; wb.save(out); print('saved',out)
+wb.save(OUT); print('saved',OUT)
