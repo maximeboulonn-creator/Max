@@ -39,7 +39,7 @@ class Sheet:
         r=s.r
         for c in range(2,2+s.ncols):
             x=s.ws.cell(r,c); x.fill=fill(TEAL)
-        c=s.ws.cell(r,2,text); c.font=F(True,WHITE,9.5); c.alignment=al('left')
+        c=s.ws.cell(r,2,text); c.font=F(True,WHITE,9.5); c.alignment=al('left',wrap=False)
         s.ws.row_dimensions[r].height=18; s.r+=1
         if note:
             c=s.ws.cell(s.r,2,note); c.font=F(False,GREY,i=True); c.alignment=al(wrap=True,v='top')
