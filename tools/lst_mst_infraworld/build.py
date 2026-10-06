@@ -8,8 +8,16 @@ SEL=int(sys.argv[1]) if len(sys.argv)>1 else 1
 RES=json.load(open(sys.argv[2])) if len(sys.argv)>2 and sys.argv[2] else None
 OUT=sys.argv[3] if len(sys.argv)>3 else "LST_MST_Openstone_Infraworld.xlsx"
 bk=Book(); wb=bk.wb
-T=8                      # dates de rachat semestrielles projetées
-PC=[L(3+t) for t in range(T)]   # colonnes C..J des périodes
+LOCK=3                   # semestres de blocage avant la première date de rachat
+TR=8                     # dates de rachat semestrielles projetées
+T=LOCK+TR                # périodes du moteur
+PC=[L(3+t) for t in range(T)]   # colonnes C..M des périodes
+PCR=PC[:TR]
+PLAB=[f'Blocage {t+1}' if t<LOCK else f'Rachat {t+1-LOCK}' for t in range(T)]
+NORMAL={'rachat':'0','collecte':'1','dist':'1','appels':'1','porteur1':'0','sigma':'0','usd':'0'}
+def cal(key,code,t):
+    if t<LOCK: return CAL[('pairs','S1')][0] if key=='pairs' else NORMAL[key]
+    return CAL[(key,code)][t-LOCK]
 SCEN=[('S1','Base','Rachats courants, collecte normale, marchés stables'),
       ('S2','Plausible','Correction de marché à 1,5 écart-type, rachats de 7,5 % sur deux dates, collecte divisée par deux'),
       ('S3','Sévère','Réplique 2008 : pire semestre historique des proxies, rachats de 15 % sur deux dates, collecte nulle, sortie du premier porteur'),
@@ -67,28 +75,28 @@ r_sel=P.row(['Taille retenue pour les onglets de calcul (1 = 8 M€ … 5 = 50 M
 r_an=P.row(['Actif net au lancement']+[z*1e6 for z in SIZES]+['EUR',None,None,None,'Hypothèse de collecte'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5)); bk.name('Tailles_AN',P.ws,f'$C${r_an}:$G${r_an}')
 r_cm=P.row(['Engagement MAPIF II']+[4e6,4e6,5e6,5e6,17e6]+['EUR',None,None,None,'Minimum 10 M$, dérogation à 4 M à obtenir par écrit ; 50 M€ : poids cible de la synthèse (34 %)'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5))
 r_cs=P.row(['Engagement MSIG 3']+[0,0,5e6,5e6,8.5e6]+['EUR',None,None,None,'Aucune ligne sous 20 M€'],fmts=[None]+[EUR]*5,inputs=(1,2,3,4,5))
-r_pa=P.row(['Part des engagements fermés appelée à la fin du blocage',0.70,None,None,None,None,'%',None,None,None,'Tirage sur trois ans : deux tiers environ après deux ans'],fmts=[None,PCT0],inputs=(1,)); P.nm('Part_appelee',r_pa)
-r_fm=P.row(['MAPIF II - valeur appelée']+[f'={L(3+i)}{r_cm}*Part_appelee' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
-r_fs=P.row(['MSIG 3 - valeur appelée']+[f'={L(3+i)}{r_cs}*Part_appelee' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
-r_na=P.row(['Non-appelé des fonds fermés']+[f'=({L(3+i)}{r_cm}+{L(3+i)}{r_cs})*(1-Part_appelee)' for i in range(5)]+['EUR',None,None,None,'Sortie future, financée par la poche et les distributions'],fmts=[None]+[EUR]*5)
+r_eng=P.row(['Engagements fermés (réservés en trésorerie jusqu\'aux appels)']+[f'={L(3+i)}{r_cm}+{L(3+i)}{r_cs}' for i in range(5)]+['EUR',None,None,None,'Appelés sur trois ans à compter du lancement (Paramètres D)'],fmts=[None]+[EUR]*5)
+r_ap1=P.row(['Part appelée à la première date de rachat (trois appels sur six)']+[f'={L(3+i)}{r_eng}*{LOCK}*Appels_base' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
 r_ca=P.row(['Trésorerie (5 %)']+[f'={L(3+i)}{r_an}*Cash_cible' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
 r_hy=P.row(['Fonds HY UCITS (10 %)']+[f'={L(3+i)}{r_an}*(Liq_cible-Cash_cible)' for i in range(5)]+['EUR'],fmts=[None]+[EUR]*5)
-r_re=P.row(['Solde pour les fonds evergreen']+[f'={L(3+i)}{r_an}-{L(3+i)}{r_fm}-{L(3+i)}{r_fs}-{L(3+i)}{r_ca}-{L(3+i)}{r_hy}' for i in range(5)]+['EUR',None,None,None,'Doit rester positif'],fmts=[None]+[EUR]*5)
+r_re=P.row(['Solde pour les fonds evergreen au lancement']+[f'={L(3+i)}{r_an}-{L(3+i)}{r_eng}*Reserve_flag-{L(3+i)}{r_ca}-{L(3+i)}{r_hy}' for i in range(5)]+['EUR',None,None,None,'Doit rester positif'],fmts=[None]+[EUR]*5)
 r_pg=P.row(['PG NGI (moitié du solde)']+[f'={L(3+i)}{r_re}/2' for i in range(5)]+['EUR',None,None,None,'Minimum 1 M USD (classe I)'],fmts=[None]+[EUR]*5)
 r_ar=P.row(['Ares AGI (moitié du solde)']+[f'={L(3+i)}{r_re}/2' for i in range(5)]+['EUR',None,None,None,'Minimum 1 M€ (classe C)'],fmts=[None]+[EUR]*5)
 P.hdr(['Contrôles par taille']+[f'{z} M€' for z in SIZES]+['','','','',''],h=16)
-P.row(['Poids MAPIF II appelé (% AN)']+[f'={L(3+i)}{r_fm}/{L(3+i)}{r_an}' for i in range(5)]+['%'],fmts=[None]+[PCT]*5)
 P.row(['Engagement MAPIF II (% AN)']+[f'={L(3+i)}{r_cm}/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Concentration sur une ligne : limite interne proposée 35 % (KRI-09)'],fmts=[None]+[PCT]*5)
-P.row(['Sur-engagement (AN + non-appelé) / AN']+[f'=({L(3+i)}{r_an}+{L(3+i)}{r_na})/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Plafond 130 % (art. 23)'],fmts=[None]+[PCT0]*5)
-P.row(['Dollar non couvert (% AN)']+[f'=({L(3+i)}{r_fm}+{L(3+i)}{r_fs})/{L(3+i)}{r_an}' for i in range(5)]+['%'],fmts=[None]+[PCT]*5)
+P.row(['Sur-engagement au lancement (AN + non-appelé non réservé) / AN']+[f'=({L(3+i)}{r_an}+{L(3+i)}{r_eng}*(1-Reserve_flag))/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Plafond 130 % (art. 23) ; 100 % si les engagements sont réservés'],fmts=[None]+[PCT0]*5)
+P.row(['Dollar non couvert une fois les engagements appelés (% AN du lancement)']+[f'={L(3+i)}{r_eng}/{L(3+i)}{r_an}' for i in range(5)]+['%',None,None,None,'Avant collecte ; MAPIF II et MSIG 3 en dollars'],fmts=[None]+[PCT]*5)
 P.row(['Frais totaux du Fonds (% AN, part A1)']+[f'=Frais_var+MAX(Fee_SGP,SGP_min/{L(3+i)}{r_an})-Fee_SGP+Frais_fixes/{L(3+i)}{r_an}' for i in range(5)]+['% / an',None,None,None,'Frais variables plus prestataires et minimum de la Société de Gestion rapportés à l\'encours'],fmts=[None]+[PCT2]*5)
 P.row(['Lancement possible (≥ 8 M€) et solde evergreen positif']+[f'=IF(AND({L(3+i)}{r_an}>=Taille_min,{L(3+i)}{r_re}>0,{L(3+i)}{r_pg}>=1000000),"Vert","Rouge")' for i in range(5)]+['',None,None,None,'Minimum de lancement et tickets minimaux'],fmts=[None])
 P.row(['Dérogation Macquarie nécessaire (engagement < 10 M)']+[f'=IF(OR(AND({L(3+i)}{r_cm}>0,{L(3+i)}{r_cm}<Ticket_Macquarie),AND({L(3+i)}{r_cs}>0,{L(3+i)}{r_cs}<Ticket_Macquarie)),"Oui, par écrit","Non")' for i in range(5)]+[''],fmts=[None])
 verdict_cf(P.ws,f'C{P.r-2}:G{P.r-2}')
-SZ=dict(an=r_an,cm=r_cm,cs=r_cs,fm=r_fm,fs=r_fs,na=r_na,ca=r_ca,hy=r_hy,re=r_re,pg=r_pg,ar=r_ar)
+SZ=dict(an=r_an,cm=r_cm,cs=r_cs,eng=r_eng,ap1=r_ap1,ca=r_ca,hy=r_hy,re=r_re,pg=r_pg,ar=r_ar)
+P.row(['Engagement MAPIF II retenu',f'=INDEX($C${r_cm}:$G${r_cm},Taille_sel)',None,None,None,None,'EUR'],fmts=[None,EUR]); P.nm('Eng_MAPIF',P.r-1)
+P.row(['Engagement MSIG 3 retenu',f'=INDEX($C${r_cs}:$G${r_cs},Taille_sel)',None,None,None,None,'EUR'],fmts=[None,EUR]); P.nm('Eng_MSIG',P.r-1)
+P.row(['Engagements fermés totaux retenus (non-appelé au lancement)','=Eng_MAPIF+Eng_MSIG',None,None,None,None,'EUR'],fmts=[None,EUR],key=(1,)); P.nm('NA_total',P.r-1)
 P.blank()
-P.sec('C bis. ALLOCATION À LA FIN DU BLOCAGE ET TERMES DE LIQUIDITÉ DES LIGNES   (taille retenue)','Poids en % de l\'actif net au départ. Non-appelé : part de la ligne encore à appeler (fonds fermés). Gate par trimestre et pression des pairs : fonds evergreen. TTL : délai de conversion en cash en jours, par scénario. Décote : haircut de cession sur le marché secondaire.')
-hdr_r=P.hdr(['Ligne','Type','Poids','Non-appelé (% ligne)','Gate trim. (fonds)','Préavis fonds (jours)','TTL normal','TTL S2','TTL S3','TTL S4','Source'],h=30)
+P.sec('C bis. ALLOCATION AU LANCEMENT ET TERMES DE LIQUIDITÉ DES LIGNES   (taille retenue)','Poids en % de l\'actif net au lancement : les fonds fermés sont à zéro et leurs engagements sont réservés en trésorerie, puis appelés sur trois ans. Gate par trimestre et pression des pairs : fonds evergreen. TTL : délai de conversion en cash en jours, par scénario. Décote : haircut de cession sur le marché secondaire.')
+hdr_r=P.hdr(['Ligne','Type','Poids au lancement','Engagement (EUR)','Gate trim. (fonds)','Préavis fonds (jours)','TTL normal','TTL S2','TTL S3','TTL S4','Source'],h=30)
 LP={}  # line param cells
 line_defs=[
  ('MAPIF II','Fermé',0.34,0.26,0,0,365,540,730,1095,'PPM avril 2026 : aucun rachat, cession agréée par le GP ; appels à 10 JO'),
@@ -98,10 +106,10 @@ line_defs=[
  ('Fonds HY UCITS','Liquide',0.10,0,1,2,7,14,30,30,'OPCVM obligataire à VL quotidienne (prospectus art. 3)'),
  ('Trésorerie','Liquide',0.05,0,1,0,1,1,1,1,'Dépôts et monétaire ; cible 5 % fixée par la Fonction Risques'),
 ]
-szw={0:f'=INDEX($C${SZ["fm"]}:$G${SZ["fm"]},Taille_sel)/AN_depart',1:f'=INDEX($C${SZ["fs"]}:$G${SZ["fs"]},Taille_sel)/AN_depart',2:f'=INDEX($C${SZ["pg"]}:$G${SZ["pg"]},Taille_sel)/AN_depart',3:f'=INDEX($C${SZ["ar"]}:$G${SZ["ar"]},Taille_sel)/AN_depart',4:'=Liq_cible-Cash_cible',5:'=Cash_cible'}
-szna={0:f'=IF(INDEX($C${SZ["fm"]}:$G${SZ["fm"]},Taille_sel)>0,(1-Part_appelee)/Part_appelee,0)',1:f'=IF(INDEX($C${SZ["fs"]}:$G${SZ["fs"]},Taille_sel)>0,(1-Part_appelee)/Part_appelee,0)',2:0,3:0,4:0,5:0}
+szw={0:'=0',1:'=0',2:f'=INDEX($C${SZ["pg"]}:$G${SZ["pg"]},Taille_sel)/AN_depart',3:f'=INDEX($C${SZ["ar"]}:$G${SZ["ar"]},Taille_sel)/AN_depart',4:'=Liq_cible-Cash_cible',5:'=Cash_cible+NA_total*Reserve_flag/AN_depart'}
+szna={0:'=Eng_MAPIF',1:'=Eng_MSIG',2:0,3:0,4:0,5:0}
 for i,(nm_,typ,w,na,g,pre,t0,t2,t3,t4,src) in enumerate(line_defs):
-    r=P.row([nm_,typ,szw[i],szna[i],g,pre,t0,t2,t3,t4,src],fmts=[None,None,PCT,PCT0,PCT0,D,D,D,D,D],inputs=(4,5,6,7,8,9),h=26)
+    r=P.row([nm_,typ,szw[i],szna[i],g,pre,t0,t2,t3,t4,src],fmts=[None,None,PCT,EUR,PCT0,D,D,D,D,D],inputs=(4,5,6,7,8,9),h=26)
     LP[i]=dict(row=r,w=f'Paramètres!$D${r}',na=f'Paramètres!$E${r}',gate=f'Paramètres!$F${r}',pre=f'Paramètres!$G${r}',ttl=[f'Paramètres!${c}${r}' for c in 'HIJK'],typ=typ)
 r=P.row(['Total','', f'=SUM(D{LP[0]["row"]}:D{LP[5]["row"]})',None,None,None,None,None,None,None,'Doit être égal à 100 %'],fmts=[None,None,PCT0],key=(2,)); P.nm('W_total',r,4)
 P.nm('W_cash',LP[5]['row'],4); P.nm('W_HY',LP[4]['row'],4)
@@ -145,7 +153,8 @@ prow('Suspension automatique après le nombre maximal de reports',1,'1/0','Note 
 prow('Prolongation du Délai de Préavis activée',0,'1/0','Prospectus art. 7.2.7','Prolong_actif',D,note='Agit sur le profil de passif (LTTL) ; n\'ajoute pas de cash.')
 prow('Cession secondaire autorisée pour honorer les rachats',1,'1/0','Décision de gestion','Cession_autorisee',D)
 prow('Profil de flux des tests inversés (1 = S1 normal, 2 = S2, 3 = S3, 4 = S4)',1,'1-4','Fonction Risques : par défaut, flux normaux hors collecte pour isoler l\'effet des rachats','Reverse_flux',D,note='La collecte est nulle dans tous les tests inversés (ESMA 34-39-882).')
-prow('Réinvestissement de la trésorerie excédentaire (au-dessus de la cible) dans le fonds HY puis les fonds evergreen',1,'1/0','Décision de gestion','Reinvest_actif',D,note='Les fonds fermés ne reçoivent que leurs appels ; la trésorerie cible est conservée.')
+prow('Réinvestissement de la trésorerie excédentaire (au-dessus de la cible) dans le fonds HY puis les fonds evergreen',1,'1/0','Décision de gestion','Reinvest_actif',D,note='Les fonds fermés ne reçoivent que leurs appels ; la trésorerie cible et la réserve d\'appel sont conservées.')
+prow('Engagements fermés réservés en trésorerie jusqu\'aux appels (1 = oui ; 0 = sur-engagement financé par la collecte)',1,'1/0','Décision de gestion','Reserve_flag',D,note='À 1, le sur-engagement est de 100 % au lancement ; la réserve est exclue de la poche liquide libre.')
 P.blank()
 P.sec('F. SEUILS DE VERDICT   (note de liquidité § 5)')
 P.hdr(['Seuil','Valeur','Unité','Source','','','','','','','Commentaire'])
@@ -161,10 +170,10 @@ P.blank()
 P.sec('G. CALIBRATION DES SCÉNARIOS DE LIQUIDITÉ   par date de rachat (semestres 1 à 8)','Taux de rachat en % de l\'actif net de début de période. Multiplicateurs appliqués aux hypothèses de régime normal. Pression des pairs : part de la capacité de rachat des fonds evergreen consommée par les autres investisseurs (1 = plus rien n\'est récupérable). Porteur 1 : 1 si le premier porteur demande la sortie intégrale à la date 1.')
 CAL={}
 def cal_block(key,label,unit,fmt,rows):
-    P.hdr([label]+[f'Date {t+1}' for t in range(T)]+['Unité','Commentaire'],h=18)
+    P.hdr([label]+[f'Date {t+1}' for t in range(TR)]+['Unité','Commentaire'],h=18)
     for (code,_,_),vals,com in zip(SCEN,rows,['','','','']):
-        r=P.row([code]+list(vals)+[unit,com],fmts=[None]+[fmt]*T,inputs=tuple(range(1,1+T)))
-        CAL[(key,code)]=[f'Paramètres!${PC[t]}${r}' for t in range(T)]
+        r=P.row([code]+list(vals)+[unit,com],fmts=[None]+[fmt]*TR,inputs=tuple(range(1,1+TR)))
+        CAL[(key,code)]=[f'Paramètres!${PC[t]}${r}' for t in range(TR)]
 cal_block('rachat','Taux de rachat demandé','% AN',PCT,[
  [0.02]*8,[0.075,0.075,0.05,0.03,0.02,0.02,0.02,0.02],[0.15,0.15,0.10,0.05,0.03,0.02,0.02,0.02],[0.25,0.20,0.15,0.10,0.05,0.03,0.02,0.02]])
 cal_block('collecte','Multiplicateur de collecte','x','0.00',[
@@ -256,21 +265,21 @@ ws.cell(r,9,'Volatilité du composite coté C1 / volatilité désmoothée Preqin
 c=ws.cell(r,9,'Lecture : les VL d\'expertise lissent les chocs ; la transmission retenue dans l\'onglet Paramètres (0,5 par défaut) est cohérente avec le rapport VEV privée / VEV cotée. Une transmission de 1 reviendrait à valoriser les fonds cibles comme des actifs cotés.'); c.font=F(False,GREY); c.alignment=al(wrap=True,v='top'); ws.merge_cells(start_row=r,start_column=9,end_row=r,end_column=14); ws.row_dimensions[r].height=40
 # ======================================================================= MST SCÉNARIOS
 MS=Sheet(bk,'MST Scénarios','MST - CHOCS DE MARCHÉ PAR SCÉNARIO ET PAR SEMESTRE, RENDEMENT DES LIGNES ET TRAJECTOIRE DE VL','Chocs des facteurs cotés = profil en σ (Paramètres H) × écart-type semestriel du facteur (MST Données). Rendement d\'une ligne = dérive (TRI cible / 2) + transmission × choc du proxy (part immédiate et part retardée d\'un semestre) + effet dollar + courbe en J. Trajectoire de VL hors flux de passif (effet marché pur), reprise par le moteur LST.',
-        [2,44,12,12,12,12,12,12,12,12,40],ncols=10)
+        [2,44,11,11,11,11,11,11,11,11,11,11,11,40],ncols=13)
 MSR={}  # (code,'line',i) -> row ; (code,'nav') -> row ; (code,'fac',k)
 for code,lab,desc in SCEN:
     MS.sec(f'{code} - {lab.upper()}   {desc}')
-    MS.hdr(['Semestre']+[f'{t+1}' for t in range(T)]+['Lecture'],h=16)
-    rdate=MS.row(['Date de fin de semestre']+[f'=EDATE(Date_depart,{6*t})' for t in range(T)]+[''],fmts=[None]+[DATE]*T)
-    MS.row(['Profil de choc (σ)']+[f'={CAL[("sigma",code)][t]}' for t in range(T)]+['Paramètres H'],fmts=[None]+['0.00']*T)
+    MS.hdr(['Semestre']+PLAB+['Lecture'],h=16)
+    rdate=MS.row(['Date de fin de semestre']+[f'=EDATE(Date_lancement,{6*(t+1)})' for t in range(T)]+[''],fmts=[None]+[DATE]*T)
+    MS.row(['Profil de choc (σ)']+[f'={cal("sigma",code,t)}' for t in range(T)]+['Paramètres H'],fmts=[None]+['0.00']*T)
     fr={}
     for k,lab2 in [('C1','Choc C1 Infrastructure cotée'),('C3','Choc C3 Direct lending coté'),('C4','Choc C4 Crédit HY coté')]:
-        fr[k]=MS.row([lab2]+[f'={CAL[("sigma",code)][t]}*{STAT["sd_s"][k]}' for t in range(T)]+[f'σ semestriel du facteur × profil'],fmts=[None]+[PCT]*T)
-    fr['USD']=MS.row(['Choc dollar (EUR/USD)']+[f'={CAL[("usd",code)][t]}' for t in range(T)]+['Paramètres H, en %'],fmts=[None]+[PCT]*T)
+        fr[k]=MS.row([lab2]+[f'={cal("sigma",code,t)}*{STAT["sd_s"][k]}' for t in range(T)]+[f'σ semestriel du facteur × profil'],fmts=[None]+[PCT]*T)
+    fr['USD']=MS.row(['Choc dollar (EUR/USD)']+[f'={cal("usd",code,t)}' for t in range(T)]+['Paramètres H, en %'],fmts=[None]+[PCT]*T)
     fr['ARES']=MS.row(['Choc proxy Ares (60 % C1, 20 % C3, 20 % C4)']+[f'=0.6*{PC[t]}{fr["C1"]}+0.2*{PC[t]}{fr["C3"]}+0.2*{PC[t]}{fr["C4"]}' for t in range(T)]+['Mix de la documentation Ares'],fmts=[None]+[PCT]*T)
     MSR[(code,'fac')]=fr
     MS.blank()
-    MS.hdr(['Rendement semestriel de la ligne']+[f'{t+1}' for t in range(T)]+['Composition'],h=16)
+    MS.hdr(['Rendement semestriel de la ligne']+PLAB+['Composition'],h=16)
     for i,(nm_,typ,px) in enumerate(LINES):
         p=LP[i]
         if px is None:
@@ -281,39 +290,171 @@ for code,lab,desc in SCEN:
             def f(t,frow=frow,p=p):
                 shock=f'{p["trans"]}*((1-{p["lag"]})*{PC[t]}{frow}'+(f'+{p["lag"]}*{PC[t-1]}{frow}' if t>0 else '')+')'
                 usd=f'+{p["usd"]}*{PC[t]}{fr["USD"]}'
-                jc=f'+IF(AND({PC[t]}{frow}<0,"{code}"<>"S1",{t+1}<=2),{p["jc"]},0)' if True else ''
+                jc=f'+IF(AND({PC[t]}{frow}<0,"{code}"<>"S1",{1 if LOCK<=t<LOCK+2 else 0}=1),{p["jc"]},0)'
                 return f'={p["rend"]}/2+{shock}{usd}{jc}'
             comp_txt=f'Dérive + transmission × choc {px} (retard d\'un semestre) + dollar + courbe en J'
         rr=MS.row([nm_]+[f(t) for t in range(T)]+[comp_txt],fmts=[None]+[PCT]*T)
         MSR[(code,'line',i)]=rr
     # portfolio market-only NAV path, weights fixed at start
     MS.blank()
-    rp=MS.row(['Rendement du portefeuille (poids de départ)']+[ '='+'+'.join(f'{LP[i]["w"]}*{PC[t]}{MSR[(code,"line",i)]}' for i in range(NL)) for t in range(T)]+['Σ poids × rendement de ligne'],fmts=[None]+[PCT]*T)
+    rp=MS.row(['Rendement du portefeuille (poids à la première date de rachat, onglet ALP)']+[ '='+'+'.join(f'{{W{i}}}*{PC[t]}{MSR[(code,"line",i)]}' for i in range(NL))+f'+{{W6}}*{PC[t]}{MSR[(code,"line",5)]}' for t in range(T)]+['Σ poids ALP × rendement de ligne ; la réserve d\'appel au taux monétaire'],fmts=[None]+[PCT]*T)
+    MSR[(code,'rp')]=rp
     rn=MS.row(['Indice de VL hors flux (base 100)']+[(f'=100*(1+{PC[0]}{rp})' if t==0 else f'={PC[t-1]}{MS.r}*(1+{PC[t]}{rp})') for t in range(T)]+['Effet marché seul'],fmts=[None]+['0.0']*T)
-    rdd=MS.row(['Écart au départ']+[f'={PC[t]}{rn}/100-1' for t in range(T)]+[''],fmts=[None]+[PCT]*T)
-    rmin=MS.row(['Pire écart cumulé (creux)',f'=MIN(C{rdd}:J{rdd})',None,None,None,None,None,None,None,'Mesure retenue pour le verdict MST'],fmts=[None,PCT],key=(1,))
-    rrec=MS.row(['Semestre de retour au-dessus du niveau de départ',f'=IFERROR(MATCH(TRUE,INDEX(C{rdd}:J{rdd}>=0,0),0),"au-delà de 8")',None,None,None,None,None,None,None,'Premier semestre où l\'indice repasse 100'],fmts=[None,D])
+    rdd=MS.row(['Écart au plus haut atteint (drawdown)']+[f'={PC[t]}{rn}/MAX($C${rn}:{PC[t]}{rn})-1' for t in range(T)]+['Indice rapporté à son maximum glissant'],fmts=[None]+[PCT]*T)
+    rmin=MS.row(['Pire écart au plus haut (creux)',f'=MIN(C{rdd}:M{rdd})',None,None,None,None,None,None,None,'Mesure retenue pour le verdict MST'],fmts=[None,PCT],key=(1,))
+    rrec=MS.row(['Dates de rachat avant le retour au niveau d\'avant choc',f'=IFERROR(MATCH(TRUE,INDEX({PC[LOCK]}{rn}:{PC[T-1]}{rn}>={PC[LOCK-1]}{rn},0),0),"au-delà de 8")',None,None,None,None,None,None,None,'Premier semestre de rachat où l\'indice retrouve son niveau de fin de blocage'],fmts=[None,D])
     rv=MS.row(['Verdict MST',f'=IF(-C{rmin}>S_mst_rouge,"Rouge",IF(-C{rmin}>S_mst_orange,"Orange","Vert"))',None,None,None,None,None,None,None,'Vert ≤ 10 % ; Orange 10 à 25 % ; Rouge > 25 %'],key=(1,))
     MS.ws.cell(rv,3).alignment=al('center')
     MSR[(code,'nav')]=dict(rp=rp,rn=rn,rdd=rdd,rmin=rmin,rrec=rrec,rv=rv,rdate=rdate)
     bk.name(f'MST_{code}_creux',MS.ws,f'$C${rmin}'); bk.name(f'MST_{code}_verdict',MS.ws,f'$C${rv}'); bk.name(f'MST_{code}_reprise',MS.ws,f'$C${rrec}')
     MS.blank()
 verdict_cf(MS.ws,f'C6:C{MS.r}')
+# ======================================================================= LST MOTEUR
+E=Sheet(bk,'LST Moteur','LST - MOTEUR DE PROJECTION PAR SCÉNARIO : HUIT DATES DE RACHAT SEMESTRIELLES','Projection depuis le lancement : trois semestres de blocage (collecte, appels, aucun rachat) puis huit dates de rachat. Pour chaque scénario : passif (demandes, report, plafond, suspension), flux des lignes (appels, distributions, chocs de marché du MST), cascade de ressources (trésorerie au-dessus du plancher, vente du fonds HY, rachats evergreen sous gate et pression des pairs, cession secondaire décotée), puis indicateurs et verdict par date. Tous les paramètres viennent de l\'onglet Paramètres.',
+        [2,52,12,12,12,12,12,12,12,12,12,12,12,40],ncols=13)
+ER={}   # (code,key)->row
+def put(code,key,label,fn,fmt,note='',key_row=False,bold=False):
+    vals=[label]+[fn(t) for t in range(T)]+[note]
+    r=E.row(vals,fmts=[None]+[fmt]*T,key=(1,2,3,4,5,6,7,8) if key_row else ())
+    if bold: E.ws.cell(r,2).font=F(True)
+    ER[(code,key)]=r; return r
+def MR(code,i,t): return "'MST Scénarios'!"+PC[t]+str(MSR[(code,'line',i)])
+def R(code,key,t,prev=False):
+    return f'{PC[t-1] if prev else PC[t]}{{{key}}}'
+for code,lab,desc in SCEN:
+    E.sec(f'{code} - {lab.upper()}   {desc}')
+    E.hdr(['Période']+PLAB+['Formule et lecture'],h=16)
+    put(code,'date','Date de fin de semestre (VL)',lambda t:f'=EDATE(Date_lancement,{6*(t+1)})',DATE)
+    # NAV début
+    put(code,'an0','Actif net de début de période',lambda t:('=AN_depart' if t==0 else f'={PC[t-1]}{{anfin}}'),EUR,'t = 1 : AN de départ ; ensuite AN de fin précédent')
+    # passif
+    put(code,'subs','Souscriptions versées sur la période',lambda t:f'=Collecte_norm*{cal("collecte",code,t)}*{R(code,"an0",t)}',EUR,'Collecte normale × multiplicateur du scénario')
+    put(code,'dem','Demandes de rachat nouvelles',lambda t:f'=({cal("rachat",code,t)}+{cal("porteur1",code,t)}*Top1)*{R(code,"an0",t)}',EUR,'Taux du scénario × AN, plus sortie du premier porteur le cas échéant')
+    put(code,'rep_in','Demandes reportées des dates précédentes',lambda t:('=0' if t==0 else f'={R(code,"rep_out",t,True)}'),EUR,'Report automatique (art. 7.2.6)')
+    put(code,'dem_tot','Demandes totales à la date',lambda t:f'={R(code,"dem",t)}+{R(code,"rep_in",t)}',EUR)
+    put(code,'plafond','Montant exécutable (plafond net des souscriptions)',lambda t:f'=IF(Gate_actif=1,Gate*{R(code,"an0",t)}+{R(code,"subs",t)},{R(code,"dem_tot",t)})',EUR,'Gate × AN + souscriptions versées ; sans limite si le gate est levé')
+    put(code,'susp','Suspension des rachats active (1/0)',lambda t:('=0' if t==0 else f'=IF(OR({R(code,"susp",t,True)}=1,AND(Suspension_auto=1,{R(code,"consec",t,True)}>=Reports_max)),1,0)'),D,'Déclenchée après le nombre maximal de reports consécutifs (Paramètres E)')
+    put(code,'exec','Rachats exécutés',lambda t:f'=IF({R(code,"susp",t)}=1,0,MIN({R(code,"dem_tot",t)},{R(code,"plafond",t)}))',EUR,'Zéro en suspension')
+    put(code,'rep_out','Demandes reportées à la date suivante',lambda t:f'={R(code,"dem_tot",t)}-{R(code,"exec",t)}',EUR)
+    put(code,'gated','Date plafonnée ou suspendue (1/0)',lambda t:f'=IF({R(code,"rep_out",t)}>1,1,0)',D)
+    put(code,'consec','Dates plafonnées consécutives',lambda t:('=C'+str(ER[(code,'gated')]) if t==0 else f'=IF({R(code,"gated",t)}=1,{R(code,"consec",t,True)}+1,0)'),D)
+    put(code,'file','File d\'attente en % de l\'AN de début',lambda t:f'={R(code,"rep_out",t)}/{R(code,"an0",t)}',PCT)
+    E.blank()
+    # lignes : valeurs début
+    for i,(nm_,typ,px) in enumerate(LINES[:5]):
+        p=LP[i]
+        init={0:'=0',1:'=0',2:'=(AN_depart-NA_total*Reserve_flag-Liq_cible*AN_depart)/2',3:'=(AN_depart-NA_total*Reserve_flag-Liq_cible*AN_depart)/2',4:'=(Liq_cible-Cash_cible)*AN_depart'}[i]
+        put(code,f'v0_{i}',f'{nm_} - valeur de début',lambda t,i=i,init=init:(init if t==0 else f'={PC[t-1]}{{vfin_{i}}}'),EUR,'Au lancement : solde réparti entre PG NGI et Ares AGI, fonds fermés non appelés' if i==2 else '')
+    put(code,'cash0','Trésorerie de début (réserve d\'appel comprise)',lambda t:('=Cash_cible*AN_depart+NA_total*Reserve_flag' if t==0 else f'={PC[t-1]}{{cashfin}}'),EUR,'Au lancement : trésorerie cible plus engagements fermés réservés')
+    put(code,'na0','Non-appelé de début (fonds fermés)',lambda t:('=NA_total' if t==0 else f'={PC[t-1]}{{nafin}}'),EUR,'Engagements restant à appeler')
+    E.blank()
+    put(code,'appels','Appels de fonds des fonds fermés',lambda t:f'=MAX(0,MIN({R(code,"na0",t)},NA_total*Appels_base*{cal("appels",code,t)}))',EUR,'Rythme normal × multiplicateur ; MAPIF II 60 %, MSIG 3 40 % du non-appelé')
+    put(code,'dist_f','Distributions des fonds fermés',lambda t:f'=({R(code,"v0_0",t)}*{LP[0]["dist"]}+{R(code,"v0_1",t)}*{LP[1]["dist"]})/2*{cal("dist",code,t)}',EUR,'Valeur × taux annuel / 2 × multiplicateur')
+    put(code,'dist_o','Distributions des fonds evergreen',lambda t:f'=({R(code,"v0_2",t)}*{LP[2]["dist"]}+{R(code,"v0_3",t)}*{LP[3]["dist"]})/2*{cal("dist",code,t)}',EUR,'Imputées sur la capacité de rachat des fonds (PG NGI)')
+    put(code,'frais','Frais du Fonds',lambda t:f'=Frais_an/2*{R(code,"an0",t)}',EUR)
+    put(code,'int','Produits de trésorerie',lambda t:f'={R(code,"cash0",t)}*{LP[5]["rend"]}/2',EUR)
+    put(code,'besoin','Besoin de trésorerie brut',lambda t:f'={R(code,"exec",t)}+{R(code,"appels",t)}+{R(code,"frais",t)}-{R(code,"subs",t)}-{R(code,"dist_f",t)}-{R(code,"dist_o",t)}-{R(code,"int",t)}',EUR,'Sorties moins entrées de la période')
+    put(code,'reserve','Réserve d\'appel après les appels de la période',lambda t:f'=({R(code,"na0",t)}-{R(code,"appels",t)})*Reserve_flag',EUR,'Trésorerie affectée aux engagements fermés restants')
+    put(code,'dispo','Trésorerie mobilisable au-dessus du plancher et de la réserve',lambda t:f'=MAX(0,{R(code,"cash0",t)}-{R(code,"appels",t)}-Cash_min*{R(code,"an0",t)}-{R(code,"reserve",t)})',EUR,'Plancher opérationnel (Paramètres D)')
+    put(code,'besoin2','Besoin après trésorerie',lambda t:f'=MAX(0,{R(code,"besoin",t)}-{R(code,"appels",t)}-{R(code,"dispo",t)})',EUR,'Les appels sont payés par la réserve ; le reste du besoin par la trésorerie libre')
+    put(code,'vente_hy','Vente du fonds HY',lambda t:f'=MIN({R(code,"besoin2",t)},{R(code,"v0_4",t)}*(1+{MR(code,4,t)}))',EUR,'Première ressource après la trésorerie')
+    put(code,'perte_hy','Décote réalisée sur la vente HY',lambda t:f'={R(code,"vente_hy",t)}*{LP[4]["hc"][code]}',EUR,'Haircut S2 à S4 (Paramètres C bis)')
+    put(code,'besoin3','Besoin après vente HY',lambda t:f'=MAX(0,{R(code,"besoin2",t)}-{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]}))',EUR)
+    put(code,'cap_evg','Capacité de rachat des fonds evergreen (gates, pairs, distributions)',lambda t:f'=MAX(0,({R(code,"v0_2",t)}*{LP[2]["gate"]}+{R(code,"v0_3",t)}*{LP[3]["gate"]})*2*(1-{cal("pairs",code,t)})-{R(code,"dist_o",t)})',EUR,'Deux trimestres de gate à 5 %, part des pairs déduite')
+    put(code,'cible_evg','Rachats evergreen demandés : besoin résiduel et reconstitution de la poche d\'exécution',lambda t:f'=MAX({R(code,"besoin3",t)},Poche_min_exec*{R(code,"an0",t)}-({R(code,"cash0",t)}-{R(code,"besoin",t)}-{R(code,"reserve",t)}+{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]})+{R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)}))',EUR,'La Fonction Risques demande le rachat dès que trésorerie + HY passent sous la poche d\'exécution (Paramètres D)')
+    put(code,'rach_evg','Rachats obtenus des fonds evergreen',lambda t:f'=MAX(0,MIN({R(code,"cible_evg",t)},{R(code,"cap_evg",t)}))',EUR,'Au prorata PG NGI / Ares AGI, dans la limite de la capacité sous gate')
+    put(code,'besoin4','Besoin résiduel',lambda t:f'=MAX(0,{R(code,"besoin3",t)}-{R(code,"rach_evg",t)})',EUR)
+    put(code,'cession','Cession secondaire des fonds fermés (valeur cédée)',lambda t:f'=IF(Cession_autorisee=1,MIN({R(code,"besoin4",t)}/(1-{LP[0]["hc"][code]}),{R(code,"v0_0",t)}+{R(code,"v0_1",t)}),0)',EUR,'Montant à céder pour encaisser le besoin après décote')
+    put(code,'perte_c','Décote réalisée sur la cession',lambda t:f'={R(code,"cession",t)}*{LP[0]["hc"][code]}',EUR)
+    put(code,'defaut','Défaut de liquidité (besoin non couvert)',lambda t:f'=MAX(0,{R(code,"besoin4",t)}-{R(code,"cession",t)}*(1-{LP[0]["hc"][code]}))',EUR,'Doit rester nul ; sinon la suspension s\'impose')
+    put(code,'cash_pre','Trésorerie avant réinvestissement',lambda t:f'={R(code,"cash0",t)}-{R(code,"besoin",t)}+{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]})+{R(code,"rach_evg",t)}+{R(code,"cession",t)}*(1-{LP[0]["hc"][code]})+{R(code,"defaut",t)}',EUR,'Le défaut est réintégré pour garder un solde cohérent (rachat non payé)')
+    put(code,'exces','Excédent de trésorerie au-dessus de la cible',lambda t:f'=MAX(0,{R(code,"cash_pre",t)}-{R(code,"reserve",t)}-Cash_cible*({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)}))*Reinvest_actif',EUR,'Réinvesti si l\'interrupteur est actif (Paramètres E)')
+    put(code,'reinv_hy','Réinvestissement dans le fonds HY (retour au poids cible)',lambda t:f'=MIN({R(code,"exces",t)},MAX(0,(Liq_cible-Cash_cible)*({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)})-({R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)})))',EUR)
+    put(code,'reinv_evg','Réinvestissement dans les fonds evergreen (moitié PG NGI, moitié Ares AGI)',lambda t:f'={R(code,"exces",t)}-{R(code,"reinv_hy",t)}',EUR,'Les fonds fermés ne reçoivent que les appels')
+    put(code,'cashfin','Trésorerie de fin',lambda t:f'={R(code,"cash_pre",t)}-{R(code,"reinv_hy",t)}-{R(code,"reinv_evg",t)}',EUR)
+    E.blank()
+    # valeurs fin par ligne
+    share=lambda t,i:(f'IF({R(code,"v0_0",t)}+{R(code,"v0_1",t)}>0,{R(code,"v0_"+str(i),t)}/({R(code,"v0_0",t)}+{R(code,"v0_1",t)}),0)')
+    put(code,'vfin_0','MAPIF II - valeur de fin',lambda t:f'={R(code,"v0_0",t)}*(1+{MR(code,0,t)})+{R(code,"appels",t)}*Eng_MAPIF/NA_total-{R(code,"v0_0",t)}*{LP[0]["dist"]}/2*{cal("dist",code,t)}-{R(code,"cession",t)}*{share(t,0)}',EUR,'Valeur × (1 + rendement MST) + appels - distributions - cession')
+    put(code,'vfin_1','MSIG 3 - valeur de fin',lambda t:f'={R(code,"v0_1",t)}*(1+{MR(code,1,t)})+{R(code,"appels",t)}*Eng_MSIG/NA_total-{R(code,"v0_1",t)}*{LP[1]["dist"]}/2*{cal("dist",code,t)}-{R(code,"cession",t)}*{share(t,1)}',EUR)
+    evs=lambda t,i:(f'{R(code,"v0_"+str(i),t)}/({R(code,"v0_2",t)}+{R(code,"v0_3",t)})')
+    put(code,'vfin_2','PG NGI - valeur de fin',lambda t:f'={R(code,"v0_2",t)}*(1+{MR(code,2,t)})-{R(code,"v0_2",t)}*{LP[2]["dist"]}/2*{cal("dist",code,t)}-{R(code,"rach_evg",t)}*{evs(t,2)}+{R(code,"reinv_evg",t)}/2',EUR,'Rendement MST, distributions, rachats obtenus au prorata, réinvestissement')
+    put(code,'vfin_3','Ares AGI - valeur de fin',lambda t:f'={R(code,"v0_3",t)}*(1+{MR(code,3,t)})-{R(code,"v0_3",t)}*{LP[3]["dist"]}/2*{cal("dist",code,t)}-{R(code,"rach_evg",t)}*{evs(t,3)}+{R(code,"reinv_evg",t)}/2',EUR)
+    put(code,'vfin_4','Fonds HY UCITS - valeur de fin',lambda t:f'={R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)}+{R(code,"reinv_hy",t)}',EUR)
+    put(code,'nafin','Non-appelé de fin',lambda t:f'=MAX(0,{R(code,"na0",t)}-{R(code,"appels",t)}-IF({R(code,"v0_0",t)}+{R(code,"v0_1",t)}+{R(code,"na0",t)}>0,{R(code,"cession",t)}*({R(code,"na0",t)}-{R(code,"appels",t)})/({R(code,"v0_0",t)}+{R(code,"v0_1",t)}+{R(code,"na0",t)}),0))',EUR,'La cession emporte sa part de non-appelé')
+    put(code,'anfin','Actif net de fin',lambda t:f'={R(code,"vfin_0",t)}+{R(code,"vfin_1",t)}+{R(code,"vfin_2",t)}+{R(code,"vfin_3",t)}+{R(code,"vfin_4",t)}+{R(code,"cashfin",t)}',EUR,'Somme des lignes et de la trésorerie',bold=True)
+    put(code,'ctrl','Contrôle : AN fin - (AN début + souscriptions - rachats - frais + P&L lignes - décotes)',lambda t:f'=ROUND({R(code,"anfin",t)}-({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)}+{R(code,"defaut",t)}-{R(code,"frais",t)}+{R(code,"int",t)}+{R(code,"v0_0",t)}*{MR(code,0,t)}+{R(code,"v0_1",t)}*{MR(code,1,t)}+{R(code,"v0_2",t)}*{MR(code,2,t)}+{R(code,"v0_3",t)}*{MR(code,3,t)}+{R(code,"v0_4",t)}*{MR(code,4,t)}-{R(code,"perte_hy",t)}-{R(code,"perte_c",t)}),0)',EUR,'Doit être nul')
+    E.blank()
+    # indicateurs
+    put(code,'poche','Poche liquide libre de fin (trésorerie hors réserve + HY), % AN',lambda t:f'=({R(code,"cashfin",t)}-{R(code,"nafin",t)}*Reserve_flag+{R(code,"vfin_4",t)})/{R(code,"anfin",t)}',PCT,'Rouge < 5 % ; Orange < 15 %')
+    put(code,'couv','Couverture à douze mois : ressources mobilisables / deux dates au plafond',lambda t:f'=({R(code,"cashfin",t)}-{R(code,"nafin",t)}*Reserve_flag+{R(code,"vfin_4",t)}+2*{R(code,"cap_evg",t)}+2*({R(code,"dist_f",t)}+{R(code,"dist_o",t)})-2*MIN({R(code,"nafin",t)},NA_total*Appels_base*{cal("appels",code,min(t+1,T-1))})*(1-Reserve_flag))/(2*Gate*{R(code,"anfin",t)})',DEC,'Rouge < 1,0 ; Orange < 1,5')
+    put(code,'sureng','Exposition totale si tout est appelé : (AN + non-appelé non réservé) / AN',lambda t:f'=({R(code,"anfin",t)}+{R(code,"nafin",t)}*(1-Reserve_flag))/{R(code,"anfin",t)}',PCT0,'100 % avec réserve ; plafond de sur-engagement 130 % (art. 23)')
+    put(code,'usd','Exposition dollar non couverte, % AN',lambda t:f'=({R(code,"vfin_0",t)}*{LP[0]["usd"]}+{R(code,"vfin_1",t)}*{LP[1]["usd"]})/{R(code,"anfin",t)}',PCT)
+    put(code,'gel','Triple gel (collecte, distributions et capacité evergreen simultanément réduites de moitié)',lambda t:f'=IF(AND({cal("collecte",code,t)}<0.5,{cal("dist",code,t)}<0.5,(1-{cal("pairs",code,t)})<0.5*(1-{cal("pairs","S1",t)})),1,0)',D,'Signature de risque evergreen (ESMA 34-39-882)')
+    put(code,'verdict','Verdict de la date',lambda t:f'=IF(OR({R(code,"susp",t)}=1,{R(code,"defaut",t)}>1,{R(code,"file",t)}>S_file_rouge,{R(code,"poche",t)}<S_poche_rouge,{R(code,"couv",t)}<S_couv_rouge),"Rouge",IF(OR({R(code,"gated",t)}=1,{R(code,"poche",t)}<S_poche_orange,{R(code,"couv",t)}<S_couv_orange,{R(code,"gel",t)}=1),"Orange","Vert"))',None,'Seuils de l\'onglet Paramètres F',key_row=True)
+    verdict_cf(E.ws,f'C{ER[(code,"verdict")]}:M{ER[(code,"verdict")]}')
+    for cc in range(3,3+T): E.ws.cell(ER[(code,'verdict')],cc).alignment=al('center')
+    E.blank()
+    # résumé scénario
+    E.hdr(['Synthèse du scénario','Valeur','','','','','','','','Lecture'],h=16)
+    def srow(label,formula,fmt,nm_,note=''):
+        r=E.row([label,formula,None,None,None,None,None,None,None,note],fmts=[None,fmt],key=(1,)); bk.name(f'LST_{code}_{nm_}',E.ws,f'$C${r}'); return r
+    srow('Dates plafonnées ou suspendues',f'=SUM(C{ER[(code,"gated")]}:M{ER[(code,"gated")]})',D,'gated')
+    srow('File d\'attente maximale, % AN',f'=MAX(C{ER[(code,"file")]}:M{ER[(code,"file")]})',PCT,'file')
+    srow('File résiduelle à la date 8, % AN',f'=M{ER[(code,"file")]}',PCT,'file8','Indicateur unique du Conducting Officer (< 5 % vert, 5 à 15 % orange, 15 à 30 % élevé, > 30 % sévère)')
+    srow('Première date de suspension',f'=IFERROR(INDEX(C{ER[(code,"date")]}:M{ER[(code,"date")]},MATCH(1,C{ER[(code,"susp")]}:M{ER[(code,"susp")]},0)),"-")',DATE,'susp')
+    srow('Poche liquide minimale, % AN',f'=MIN(C{ER[(code,"poche")]}:M{ER[(code,"poche")]})',PCT,'poche')
+    srow('Couverture à douze mois minimale',f'=MIN(C{ER[(code,"couv")]}:M{ER[(code,"couv")]})',DEC,'couv')
+    srow('Rachats obtenus des fonds evergreen, cumul (EUR)',f'=SUM(C{ER[(code,"rach_evg")]}:M{ER[(code,"rach_evg")]})',EUR,'evg')
+    srow('Cessions secondaires, cumul (EUR)',f'=SUM(C{ER[(code,"cession")]}:M{ER[(code,"cession")]})',EUR,'cession')
+    srow('Décotes réalisées, cumul (EUR)',f'=SUM(C{ER[(code,"perte_hy")]}:M{ER[(code,"perte_hy")]})+SUM(C{ER[(code,"perte_c")]}:M{ER[(code,"perte_c")]})',EUR,'pertes')
+    srow('Défaut de liquidité, cumul (EUR)',f'=SUM(C{ER[(code,"defaut")]}:M{ER[(code,"defaut")]})',EUR,'defaut')
+    srow('Actif net à la date 8 / actif net au lancement',f'=M{ER[(code,"anfin")]}/AN_depart-1',PCT,'an8')
+    srow('Première date de triple gel',f'=IFERROR(INDEX(C{ER[(code,"date")]}:M{ER[(code,"date")]},MATCH(1,C{ER[(code,"gel")]}:M{ER[(code,"gel")]},0)),"-")',DATE,'gel')
+    srow('Sur-engagement maximal',f'=MAX(C{ER[(code,"sureng")]}:M{ER[(code,"sureng")]})',PCT0,'sureng')
+    srow('Verdict LST du scénario',f'=IF(COUNTIF(C{ER[(code,"verdict")]}:M{ER[(code,"verdict")]},"Rouge")>0,"Rouge",IF(COUNTIF(C{ER[(code,"verdict")]}:M{ER[(code,"verdict")]},"Orange")>0,"Orange","Vert"))',None,'verdict','Pire verdict des huit dates')
+    verdict_cf(E.ws,f'C{E.r-1}')
+    E.blank(2)
+# resolve deferred row references {key} inside each scenario block
+import re
+for code,_,_ in SCEN:
+    keys={k:v for (c,k),v in ER.items() if c==code}
+    rows=[v for (c,k),v in ER.items() if c==code]
+    for rr in range(min(rows),max(rows)+1):
+        for cc in range(3,3+T):
+            c=E.ws.cell(rr,cc); v=c.value
+            if isinstance(v,str) and '{' in v:
+                c.value=re.sub(r'\{([a-z0-9_]+)\}',lambda m:str(keys[m.group(1)]),v)
 # ======================================================================= ALP
-A=Sheet(bk,'ALP','ALP - PROFIL DE LIQUIDITÉ DE L\'ACTIF (look-through, date de départ)','Valeur de chaque ligne à la fin du blocage, délai de conversion en cash (TTL) par scénario et classement par tranche Annex IV. Les fonds evergreen ne sont pas liquides à 90 jours : préavis, gate trimestriel de 5 % et pression des pairs portent le délai de récupération complète au-delà de 180 jours. Le non-appelé des fonds fermés est une sortie, pas une ressource.',
+A=Sheet(bk,'ALP','ALP - PROFIL DE LIQUIDITÉ DE L\'ACTIF (look-through, première date de rachat)','Valeur de chaque ligne à la première date de rachat sur la trajectoire S1 (lancement à la taille retenue, collecte normale, trois appels), délai de conversion en cash (TTL) par scénario et classement par tranche Annex IV. Les fonds evergreen ne sont pas liquides à 90 jours : préavis, gate trimestriel de 5 % et pression des pairs portent le délai de récupération complète au-delà de 180 jours. Le non-appelé des fonds fermés est une sortie, pas une ressource.',
         [2,34,14,10,10,10,10,10,10,10,10,10,10,10],ncols=13)
-A.sec('A. VALEURS ET DÉLAIS DE CONVERSION')
+A.sec('A. VALEURS ET DÉLAIS DE CONVERSION   à la première date de rachat, trajectoire S1 (lancement, collecte normale, trois appels)')
 A.hdr(['Ligne','Valeur (EUR)','% AN','TTL normal','TTL S2','TTL S3','TTL S4','Non-appelé (EUR)','Capacité de rachat par semestre, normal (EUR)','Haircut S2','Haircut S3','Haircut S4',''],h=40)
 AR={}
+D1=PC[LOCK]
 for i,(nm_,typ,px) in enumerate(LINES):
     p=LP[i]
-    cap=(f'=C{A.r}*{p["gate"]}*2*(1-{CAL[("pairs","S1")][0]})' if typ=='Ouvert' else (f'=C{A.r}' if typ=='Liquide' else '=0'))
-    r=A.row([nm_,f'={p["w"]}*AN_depart',f'=C{A.r}/AN_depart',f'={p["ttl"][0]}',f'={p["ttl"][1]}',f'={p["ttl"][2]}',f'={p["ttl"][3]}',f'=C{A.r}*{p["na"]}',cap,f'={p["hc"]["S2"]}',f'={p["hc"]["S3"]}',f'={p["hc"]["S4"]}'],fmts=[None,EUR,PCT,D,D,D,D,EUR,EUR,PCT0,PCT0,PCT0])
+    if i<5: val=f"='LST Moteur'!{D1}{ER[('S1','v0_'+str(i))]}"
+    else: val=f"='LST Moteur'!{D1}{ER[('S1','cash0')]}-'LST Moteur'!{D1}{ER[('S1','na0')]}*Reserve_flag"
+    na=(f"='LST Moteur'!{D1}{ER[('S1','na0')]}*Eng_MAPIF/NA_total" if i==0 else f"='LST Moteur'!{D1}{ER[('S1','na0')]}*Eng_MSIG/NA_total" if i==1 else '=0')
+    r=A.r
+    cap=(f'=C{r}*{p["gate"]}*2*(1-{CAL[("pairs","S1")][0]})' if typ=='Ouvert' else (f'=C{r}' if typ=='Liquide' else '=0'))
+    A.row([nm_,val,f'=C{r}/C{{tot}}',f'={p["ttl"][0]}',f'={p["ttl"][1]}',f'={p["ttl"][2]}',f'={p["ttl"][3]}',na,cap,f'={p["hc"]["S2"]}',f'={p["hc"]["S3"]}',f'={p["hc"]["S4"]}'],fmts=[None,EUR,PCT,D,D,D,D,EUR,EUR,PCT0,PCT0,PCT0])
     AR[i]=r
-f0,l0=AR[0],AR[NL-1]
+r=A.r
+A.row(['Réserve pour appels (trésorerie affectée)',f"='LST Moteur'!{D1}{ER[('S1','na0')]}*Reserve_flag",f'=C{r}/C{{tot}}',1,1,1,1,0,0,0,0,0,'Liquide mais réservée aux appels des fonds fermés ; exclue de la poche libre'],fmts=[None,EUR,PCT,D,D,D,D,EUR,EUR,PCT0,PCT0,PCT0])
+AR[6]=r
+f0,l0=AR[0],AR[6]
 rt=A.row(['Total',f'=SUM(C{f0}:C{l0})',f'=SUM(D{f0}:D{l0})',None,None,None,None,f'=SUM(I{f0}:I{l0})',f'=SUM(J{f0}:J{l0})'],fmts=[None,EUR,PCT,None,None,None,None,EUR,EUR],key=(1,2,7,8))
-bk.name('NA_total',A.ws,f'$I${rt}'); bk.name('Cap_normal',A.ws,f'$J${rt}')
-A.row(['Sur-engagement au départ (AN + non-appelé) / AN',f'=(C{rt}+I{rt})/C{rt}',None,None,None,None,None,None,'=IF((C'+str(rt)+'+I'+str(rt)+')/C'+str(rt)+'>Surengagement_max,"Rouge : plafond de l\'art. 23 dépassé","Vert : sous le plafond de l\'art. 23")'],fmts=[None,PCT0],merge=[(10,14)])
+for rr in range(f0,rt): A.ws.cell(rr,4).value=A.ws.cell(rr,4).value.replace('{tot}',str(rt))
+bk.name('ALP_AN',A.ws,f'$C${rt}'); bk.name('NA_date1',A.ws,f'$I${rt}'); bk.name('Cap_normal',A.ws,f'$J${rt}')
+for code,_,_ in SCEN:
+    rr=MSR[(code,'rp')]
+    for cc in range(3,3+T):
+        v=MS.ws.cell(rr,cc).value
+        for i in range(7): v=v.replace('{W%d}'%i,f'ALP!$D${AR[i]}')
+        MS.ws.cell(rr,cc).value=v
+A.row(['Sur-engagement (AN + non-appelé non réservé) / AN',f'=(C{rt}+I{rt}*(1-Reserve_flag))/C{rt}',None,None,None,None,None,None,'=IF((C'+str(rt)+'+I'+str(rt)+'*(1-Reserve_flag))/C'+str(rt)+'>Surengagement_max,"Rouge : plafond de l\'art. 23 dépassé","Vert : sous le plafond de l\'art. 23")'],fmts=[None,PCT0],merge=[(10,14)])
 A.blank()
 A.sec('B. DÉLAI MOYEN PONDÉRÉ DE CONVERSION (WATTL) ET T90','WATTL = Σ valeur × TTL / actif net. T90 = TTL de la ligne où le cumul des valeurs triées par TTL atteint 90 % de l\'actif net.')
 A.hdr(['Mesure','Normal','S2','S3','S4','','','','','','','',''],h=16)
@@ -328,10 +469,11 @@ r90=A.row(['T90 (jours pour liquider 90 % de l\'actif)']+[None]*4,fmts=[None]+[D
 for j,c in enumerate(cols):
     cell=A.ws.cell(r90,3+j); cell.value=ArrayFormula(f'{L(3+j)}{r90}',t90(c)); cell.number_format=D; cell.font=F(); cell.alignment=al('right'); cell.border=B_BOT
 for j,s in enumerate(['N','S2','S3','S4']): bk.name(f'T90_{s}',A.ws,f'${L(3+j)}${r90}')
-A.row(['Actifs liquides à 30 jours (HQLA), % AN']+[f'=SUMIF({c}{f0}:{c}{l0},"<=30",C{f0}:C{l0})/C{rt}' for c in cols],fmts=[None]+[PCT]*4)
-rh=A.row(['HQLA après haircut, % AN',f'=SUMIF(E{f0}:E{l0},"<=30",C{f0}:C{l0})/C{rt}']+[f'=SUMPRODUCT(({c}{f0}:{c}{l0}<=30)*C{f0}:C{l0}*(1-{h}{f0}:{h}{l0}))/C{rt}' for c,h in zip(cols[1:],['K','L','M'])],fmts=[None]+[PCT]*4,key=(1,2,3,4))
+l5=AR[5]
+A.row(['Actifs liquides libres à 30 jours (HQLA hors réserve d\'appel), % AN']+[f'=SUMIF({c}{f0}:{c}{l5},"<=30",C{f0}:C{l5})/C{rt}' for c in cols],fmts=[None]+[PCT]*4)
+rh=A.row(['HQLA libres après haircut, % AN',f'=SUMIF(E{f0}:E{l5},"<=30",C{f0}:C{l5})/C{rt}']+[f'=SUMPRODUCT(({c}{f0}:{c}{l5}<=30)*C{f0}:C{l5}*(1-{h}{f0}:{h}{l5}))/C{rt}' for c,h in zip(cols[1:],['K','L','M'])],fmts=[None]+[PCT]*4,key=(1,2,3,4))
 for j,s in enumerate(['N','S2','S3','S4']): bk.name(f'HQLA_{s}',A.ws,f'${L(3+j)}${rh}')
-A.row(['Capacité de rachat des fonds evergreen sur douze mois, % AN','=Cap_normal*2/AN_depart',f'=Cap_normal*2*(1-{CAL[("pairs","S2")][0]})/(1-{CAL[("pairs","S1")][0]})/AN_depart',f'=Cap_normal*2*(1-{CAL[("pairs","S3")][0]})/(1-{CAL[("pairs","S1")][0]})/AN_depart',f'=Cap_normal*2*(1-{CAL[("pairs","S4")][0]})/(1-{CAL[("pairs","S1")][0]})/AN_depart'],fmts=[None]+[PCT]*4)
+A.row(['Capacité de rachat des fonds evergreen sur douze mois, % AN','=Cap_normal*2/ALP_AN',f'=Cap_normal*2*(1-{CAL[("pairs","S2")][0]})/(1-{CAL[("pairs","S1")][0]})/ALP_AN',f'=Cap_normal*2*(1-{CAL[("pairs","S3")][0]})/(1-{CAL[("pairs","S1")][0]})/ALP_AN',f'=Cap_normal*2*(1-{CAL[("pairs","S4")][0]})/(1-{CAL[("pairs","S1")][0]})/ALP_AN'],fmts=[None]+[PCT]*4)
 A.blank()
 A.sec('C. PROFIL ANNEX IV, CÔTÉ ACTIF   % de l\'actif net liquidable par tranche (AIFMD Annex IV, section 2, question 178)')
 A.hdr(['Tranche','Normal','S2','S3','S4','Champ Annex IV','','','','','','',''],h=16)
@@ -363,7 +505,7 @@ rm=Lq.row(['Écart actif - passif (jours)','=C'+str(Lq.r-2)+'-C'+str(Lq.r-1),'=D
 for j,s in enumerate(['N','S2','S3','S4']): bk.name(f'Ecart_TTL_{s}',Lq.ws,f'${L(3+j)}${rm}')
 Lq.row(['Verdict']+[f'=IF({L(3+j)}{rm}>250,"Rouge",IF({L(3+j)}{rm}>100,"Orange","Vert"))' for j in range(4)]+['Le plafonnement de 5 % est la réponse structurelle à cet écart'],key=(1,2,3,4))
 verdict_cf(Lq.ws,f'C{Lq.r-1}:F{Lq.r-1}')
-Lq.row(['Couverture de la sortie maximale sur douze mois (2 × gate) par l\'actif convertible dans le LTTL maximal, S3',f'=SUMPRODUCT((ALP!G{f0}:G{l0}<=LTTL_max)*ALP!C{f0}:C{l0}*(1-ALP!L{f0}:L{l0}))/(2*Gate*AN_depart)',None,None,None,'Doit dépasser 1 : la poche liquide couvre deux dates plafonnées'],fmts=[None,DEC],key=(1,)); bk.name('Couv_LTTL_S3',Lq.ws,f'$C${Lq.r-1}')
+Lq.row(['Couverture de la sortie maximale sur douze mois (2 × gate) par l\'actif convertible dans le LTTL maximal, S3',f'=SUMPRODUCT((ALP!G{f0}:G{l0}<=LTTL_max)*ALP!C{f0}:C{l0}*(1-ALP!L{f0}:L{l0}))/(2*Gate*ALP_AN)',None,None,None,'Doit dépasser 1 : la poche liquide couvre deux dates plafonnées'],fmts=[None,DEC],key=(1,)); bk.name('Couv_LTTL_S3',Lq.ws,f'$C${Lq.r-1}')
 Lq.blank()
 Lq.sec('C. PROFIL ANNEX IV, CÔTÉ PASSIF   % de l\'actif net rachetable par tranche (question 186), hypothèse de porteurs répartis uniformément')
 Lq.hdr(['Tranche','Normal','S2 (gate actif)','S3 (gate et suspension)','Préavis prolongé','Champ Annex IV'],h=16)
@@ -377,183 +519,69 @@ Lq.row(['181 à 365 jours','=(1-Part_bloquee)*0.5','=MIN(Gate,(1-Part_bloquee)*0
 Lq.row(['Plus de 365 jours',f'=1-SUM(C{rp0}:C{Lq.r-1})',f'=1-SUM(D{rp0}:D{Lq.r-1})',f'=1-SUM(E{rp0}:E{Lq.r-1})',f'=1-SUM(F{rp0}:F{Lq.r-1})','more than 365 days ; porteurs bloqués et demandes reportées'],fmts=[None,PCT,PCT,PCT,PCT])
 Lq.row(['Total']+[f'=SUM({L(3+j)}{rp0}:{L(3+j)}{Lq.r-1})' for j in range(4)]+[''],fmts=[None]+[PCT]*4,key=(1,2,3,4))
 Lq.note('Hypothèses : les porteurs hors blocage demandent au plus le plafond par date ; en S3 la première date est plafonnée puis suspendue ; en préavis prolongé la première date glisse de 89 jours. Ce profil alimente la question 186 du reporting Annex IV ; le profil d\'actif (ALP) la question 178.',h=30)
-# ======================================================================= LST MOTEUR
-E=Sheet(bk,'LST Moteur','LST - MOTEUR DE PROJECTION PAR SCÉNARIO : HUIT DATES DE RACHAT SEMESTRIELLES','Pour chaque scénario : passif (demandes, report, plafond, suspension), flux des lignes (appels, distributions, chocs de marché du MST), cascade de ressources (trésorerie au-dessus du plancher, vente du fonds HY, rachats evergreen sous gate et pression des pairs, cession secondaire décotée), puis indicateurs et verdict par date. Tous les paramètres viennent de l\'onglet Paramètres.',
-        [2,52,13,13,13,13,13,13,13,13,40],ncols=10)
-ER={}   # (code,key)->row
-def put(code,key,label,fn,fmt,note='',key_row=False,bold=False):
-    vals=[label]+[fn(t) for t in range(T)]+[note]
-    r=E.row(vals,fmts=[None]+[fmt]*T,key=(1,2,3,4,5,6,7,8) if key_row else ())
-    if bold: E.ws.cell(r,2).font=F(True)
-    ER[(code,key)]=r; return r
-def MR(code,i,t): return "'MST Scénarios'!"+PC[t]+str(MSR[(code,'line',i)])
-def R(code,key,t,prev=False):
-    return f'{PC[t-1] if prev else PC[t]}{{{key}}}'
-for code,lab,desc in SCEN:
-    E.sec(f'{code} - {lab.upper()}   {desc}')
-    E.hdr(['Date de rachat']+[f'{t+1}' for t in range(T)]+['Formule et lecture'],h=16)
-    put(code,'date','Date de VL de rachat',lambda t:f'=EDATE(Date_depart,{6*t})',DATE)
-    # NAV début
-    put(code,'an0','Actif net de début de période',lambda t:('=AN_depart' if t==0 else f'={PC[t-1]}{{anfin}}'),EUR,'t = 1 : AN de départ ; ensuite AN de fin précédent')
-    # passif
-    put(code,'subs','Souscriptions versées sur la période',lambda t:f'=Collecte_norm*{CAL[("collecte",code)][t]}*{R(code,"an0",t)}',EUR,'Collecte normale × multiplicateur du scénario')
-    put(code,'dem','Demandes de rachat nouvelles',lambda t:f'=({CAL[("rachat",code)][t]}+{CAL[("porteur1",code)][t]}*Top1)*{R(code,"an0",t)}',EUR,'Taux du scénario × AN, plus sortie du premier porteur le cas échéant')
-    put(code,'rep_in','Demandes reportées des dates précédentes',lambda t:('=0' if t==0 else f'={R(code,"rep_out",t,True)}'),EUR,'Report automatique (art. 7.2.6)')
-    put(code,'dem_tot','Demandes totales à la date',lambda t:f'={R(code,"dem",t)}+{R(code,"rep_in",t)}',EUR)
-    put(code,'plafond','Montant exécutable (plafond net des souscriptions)',lambda t:f'=IF(Gate_actif=1,Gate*{R(code,"an0",t)}+{R(code,"subs",t)},{R(code,"dem_tot",t)})',EUR,'Gate × AN + souscriptions versées ; sans limite si le gate est levé')
-    put(code,'susp','Suspension des rachats active (1/0)',lambda t:('=0' if t==0 else f'=IF(OR({R(code,"susp",t,True)}=1,AND(Suspension_auto=1,{R(code,"consec",t,True)}>=Reports_max)),1,0)'),D,'Déclenchée après le nombre maximal de reports consécutifs (Paramètres E)')
-    put(code,'exec','Rachats exécutés',lambda t:f'=IF({R(code,"susp",t)}=1,0,MIN({R(code,"dem_tot",t)},{R(code,"plafond",t)}))',EUR,'Zéro en suspension')
-    put(code,'rep_out','Demandes reportées à la date suivante',lambda t:f'={R(code,"dem_tot",t)}-{R(code,"exec",t)}',EUR)
-    put(code,'gated','Date plafonnée ou suspendue (1/0)',lambda t:f'=IF({R(code,"rep_out",t)}>1,1,0)',D)
-    put(code,'consec','Dates plafonnées consécutives',lambda t:('=C'+str(ER[(code,'gated')]) if t==0 else f'=IF({R(code,"gated",t)}=1,{R(code,"consec",t,True)}+1,0)'),D)
-    put(code,'file','File d\'attente en % de l\'AN de début',lambda t:f'={R(code,"rep_out",t)}/{R(code,"an0",t)}',PCT)
-    E.blank()
-    # lignes : valeurs début
-    for i,(nm_,typ,px) in enumerate(LINES[:5]):
-        p=LP[i]
-        put(code,f'v0_{i}',f'{nm_} - valeur de début',lambda t,i=i,p=p:(f'={p["w"]}*AN_depart' if t==0 else f'={PC[t-1]}{{vfin_{i}}}'),EUR)
-    put(code,'cash0','Trésorerie de début',lambda t:('=W_cash*AN_depart' if t==0 else f'={PC[t-1]}{{cashfin}}'),EUR)
-    put(code,'na0','Non-appelé de début (fonds fermés)',lambda t:('=NA_total' if t==0 else f'={PC[t-1]}{{nafin}}'),EUR,'Engagements restant à appeler')
-    E.blank()
-    put(code,'appels','Appels de fonds des fonds fermés',lambda t:f'=MIN({R(code,"na0",t)},NA_total*Appels_base*{CAL[("appels",code)][t]})',EUR,'Rythme normal × multiplicateur ; MAPIF II 60 %, MSIG 3 40 % du non-appelé')
-    put(code,'dist_f','Distributions des fonds fermés',lambda t:f'=({R(code,"v0_0",t)}*{LP[0]["dist"]}+{R(code,"v0_1",t)}*{LP[1]["dist"]})/2*{CAL[("dist",code)][t]}',EUR,'Valeur × taux annuel / 2 × multiplicateur')
-    put(code,'dist_o','Distributions des fonds evergreen',lambda t:f'=({R(code,"v0_2",t)}*{LP[2]["dist"]}+{R(code,"v0_3",t)}*{LP[3]["dist"]})/2*{CAL[("dist",code)][t]}',EUR,'Imputées sur la capacité de rachat des fonds (PG NGI)')
-    put(code,'frais','Frais du Fonds',lambda t:f'=Frais_an/2*{R(code,"an0",t)}',EUR)
-    put(code,'int','Produits de trésorerie',lambda t:f'={R(code,"cash0",t)}*{LP[5]["rend"]}/2',EUR)
-    put(code,'besoin','Besoin de trésorerie brut',lambda t:f'={R(code,"exec",t)}+{R(code,"appels",t)}+{R(code,"frais",t)}-{R(code,"subs",t)}-{R(code,"dist_f",t)}-{R(code,"dist_o",t)}-{R(code,"int",t)}',EUR,'Sorties moins entrées de la période')
-    put(code,'dispo','Trésorerie mobilisable au-dessus du plancher',lambda t:f'=MAX(0,{R(code,"cash0",t)}-Cash_min*{R(code,"an0",t)})',EUR,'Plancher opérationnel (Paramètres D)')
-    put(code,'besoin2','Besoin après trésorerie',lambda t:f'=MAX(0,{R(code,"besoin",t)}-{R(code,"dispo",t)})',EUR)
-    put(code,'vente_hy','Vente du fonds HY',lambda t:f'=MIN({R(code,"besoin2",t)},{R(code,"v0_4",t)}*(1+{MR(code,4,t)}))',EUR,'Première ressource après la trésorerie')
-    put(code,'perte_hy','Décote réalisée sur la vente HY',lambda t:f'={R(code,"vente_hy",t)}*{LP[4]["hc"][code]}',EUR,'Haircut S2 à S4 (Paramètres C bis)')
-    put(code,'besoin3','Besoin après vente HY',lambda t:f'=MAX(0,{R(code,"besoin2",t)}-{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]}))',EUR)
-    put(code,'cap_evg','Capacité de rachat des fonds evergreen (gates, pairs, distributions)',lambda t:f'=MAX(0,({R(code,"v0_2",t)}*{LP[2]["gate"]}+{R(code,"v0_3",t)}*{LP[3]["gate"]})*2*(1-{CAL[("pairs",code)][t]})-{R(code,"dist_o",t)})',EUR,'Deux trimestres de gate à 5 %, part des pairs déduite')
-    put(code,'cible_evg','Rachats evergreen demandés : besoin résiduel et reconstitution de la poche d\'exécution',lambda t:f'=MAX({R(code,"besoin3",t)},Poche_min_exec*{R(code,"an0",t)}-({R(code,"cash0",t)}-{R(code,"besoin",t)}+{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]})+{R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)}))',EUR,'La Fonction Risques demande le rachat dès que trésorerie + HY passent sous la poche d\'exécution (Paramètres D)')
-    put(code,'rach_evg','Rachats obtenus des fonds evergreen',lambda t:f'=MAX(0,MIN({R(code,"cible_evg",t)},{R(code,"cap_evg",t)}))',EUR,'Au prorata PG NGI / Ares AGI, dans la limite de la capacité sous gate')
-    put(code,'besoin4','Besoin résiduel',lambda t:f'=MAX(0,{R(code,"besoin3",t)}-{R(code,"rach_evg",t)})',EUR)
-    put(code,'cession','Cession secondaire des fonds fermés (valeur cédée)',lambda t:f'=IF(Cession_autorisee=1,MIN({R(code,"besoin4",t)}/(1-{LP[0]["hc"][code]}),{R(code,"v0_0",t)}+{R(code,"v0_1",t)}),0)',EUR,'Montant à céder pour encaisser le besoin après décote')
-    put(code,'perte_c','Décote réalisée sur la cession',lambda t:f'={R(code,"cession",t)}*{LP[0]["hc"][code]}',EUR)
-    put(code,'defaut','Défaut de liquidité (besoin non couvert)',lambda t:f'=MAX(0,{R(code,"besoin4",t)}-{R(code,"cession",t)}*(1-{LP[0]["hc"][code]}))',EUR,'Doit rester nul ; sinon la suspension s\'impose')
-    put(code,'cash_pre','Trésorerie avant réinvestissement',lambda t:f'={R(code,"cash0",t)}-{R(code,"besoin",t)}+{R(code,"vente_hy",t)}*(1-{LP[4]["hc"][code]})+{R(code,"rach_evg",t)}+{R(code,"cession",t)}*(1-{LP[0]["hc"][code]})+{R(code,"defaut",t)}',EUR,'Le défaut est réintégré pour garder un solde cohérent (rachat non payé)')
-    put(code,'exces','Excédent de trésorerie au-dessus de la cible',lambda t:f'=MAX(0,{R(code,"cash_pre",t)}-Cash_cible*({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)}))*Reinvest_actif',EUR,'Réinvesti si l\'interrupteur est actif (Paramètres E)')
-    put(code,'reinv_hy','Réinvestissement dans le fonds HY (retour au poids cible)',lambda t:f'=MIN({R(code,"exces",t)},MAX(0,(Liq_cible-Cash_cible)*({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)})-({R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)})))',EUR)
-    put(code,'reinv_evg','Réinvestissement dans les fonds evergreen (moitié PG NGI, moitié Ares AGI)',lambda t:f'={R(code,"exces",t)}-{R(code,"reinv_hy",t)}',EUR,'Les fonds fermés ne reçoivent que les appels')
-    put(code,'cashfin','Trésorerie de fin',lambda t:f'={R(code,"cash_pre",t)}-{R(code,"reinv_hy",t)}-{R(code,"reinv_evg",t)}',EUR)
-    E.blank()
-    # valeurs fin par ligne
-    share=lambda t,i:(f'{R(code,"v0_"+str(i),t)}/({R(code,"v0_0",t)}+{R(code,"v0_1",t)})')
-    put(code,'vfin_0','MAPIF II - valeur de fin',lambda t:f'={R(code,"v0_0",t)}*(1+{MR(code,0,t)})+{R(code,"appels",t)}*{LP[0]["na"]}*{LP[0]["w"]}/({LP[0]["na"]}*{LP[0]["w"]}+{LP[1]["na"]}*{LP[1]["w"]})-{R(code,"v0_0",t)}*{LP[0]["dist"]}/2*{CAL[("dist",code)][t]}-{R(code,"cession",t)}*{share(t,0)}',EUR,'Valeur × (1 + rendement MST) + appels - distributions - cession')
-    put(code,'vfin_1','MSIG 3 - valeur de fin',lambda t:f'={R(code,"v0_1",t)}*(1+{MR(code,1,t)})+{R(code,"appels",t)}*{LP[1]["na"]}*{LP[1]["w"]}/({LP[0]["na"]}*{LP[0]["w"]}+{LP[1]["na"]}*{LP[1]["w"]})-{R(code,"v0_1",t)}*{LP[1]["dist"]}/2*{CAL[("dist",code)][t]}-{R(code,"cession",t)}*{share(t,1)}',EUR)
-    evs=lambda t,i:(f'{R(code,"v0_"+str(i),t)}/({R(code,"v0_2",t)}+{R(code,"v0_3",t)})')
-    put(code,'vfin_2','PG NGI - valeur de fin',lambda t:f'={R(code,"v0_2",t)}*(1+{MR(code,2,t)})-{R(code,"v0_2",t)}*{LP[2]["dist"]}/2*{CAL[("dist",code)][t]}-{R(code,"rach_evg",t)}*{evs(t,2)}+{R(code,"reinv_evg",t)}/2',EUR,'Rendement MST, distributions, rachats obtenus au prorata, réinvestissement')
-    put(code,'vfin_3','Ares AGI - valeur de fin',lambda t:f'={R(code,"v0_3",t)}*(1+{MR(code,3,t)})-{R(code,"v0_3",t)}*{LP[3]["dist"]}/2*{CAL[("dist",code)][t]}-{R(code,"rach_evg",t)}*{evs(t,3)}+{R(code,"reinv_evg",t)}/2',EUR)
-    put(code,'vfin_4','Fonds HY UCITS - valeur de fin',lambda t:f'={R(code,"v0_4",t)}*(1+{MR(code,4,t)})-{R(code,"vente_hy",t)}+{R(code,"reinv_hy",t)}',EUR)
-    put(code,'nafin','Non-appelé de fin',lambda t:f'={R(code,"na0",t)}-{R(code,"appels",t)}-{R(code,"cession",t)}*{R(code,"na0",t)}/({R(code,"v0_0",t)}+{R(code,"v0_1",t)}+{R(code,"na0",t)})',EUR,'La cession emporte sa part de non-appelé')
-    put(code,'anfin','Actif net de fin',lambda t:f'={R(code,"vfin_0",t)}+{R(code,"vfin_1",t)}+{R(code,"vfin_2",t)}+{R(code,"vfin_3",t)}+{R(code,"vfin_4",t)}+{R(code,"cashfin",t)}',EUR,'Somme des lignes et de la trésorerie',bold=True)
-    put(code,'ctrl','Contrôle : AN fin - (AN début + souscriptions - rachats - frais + P&L lignes - décotes)',lambda t:f'=ROUND({R(code,"anfin",t)}-({R(code,"an0",t)}+{R(code,"subs",t)}-{R(code,"exec",t)}+{R(code,"defaut",t)}-{R(code,"frais",t)}+{R(code,"int",t)}+{R(code,"v0_0",t)}*{MR(code,0,t)}+{R(code,"v0_1",t)}*{MR(code,1,t)}+{R(code,"v0_2",t)}*{MR(code,2,t)}+{R(code,"v0_3",t)}*{MR(code,3,t)}+{R(code,"v0_4",t)}*{MR(code,4,t)}-{R(code,"perte_hy",t)}-{R(code,"perte_c",t)}),0)',EUR,'Doit être nul')
-    E.blank()
-    # indicateurs
-    put(code,'poche','Poche liquide de fin (trésorerie + HY), % AN',lambda t:f'=({R(code,"cashfin",t)}+{R(code,"vfin_4",t)})/{R(code,"anfin",t)}',PCT,'Rouge < 5 % ; Orange < 15 %')
-    put(code,'couv','Couverture à douze mois : ressources mobilisables / deux dates au plafond',lambda t:f'=({R(code,"cashfin",t)}+{R(code,"vfin_4",t)}+2*{R(code,"cap_evg",t)}+2*({R(code,"dist_f",t)}+{R(code,"dist_o",t)})-2*MIN({R(code,"nafin",t)},NA_total*Appels_base*{CAL[("appels",code)][min(t+1,T-1)]}))/(2*Gate*{R(code,"anfin",t)})',DEC,'Rouge < 1,0 ; Orange < 1,5')
-    put(code,'sureng','Sur-engagement (AN + non-appelé) / AN',lambda t:f'=({R(code,"anfin",t)}+{R(code,"nafin",t)})/{R(code,"anfin",t)}',PCT0,'Plafond 130 % (art. 23)')
-    put(code,'usd','Exposition dollar non couverte, % AN',lambda t:f'=({R(code,"vfin_0",t)}*{LP[0]["usd"]}+{R(code,"vfin_1",t)}*{LP[1]["usd"]})/{R(code,"anfin",t)}',PCT)
-    put(code,'gel','Triple gel (collecte, distributions et capacité evergreen simultanément réduites de moitié)',lambda t:f'=IF(AND({CAL[("collecte",code)][t]}<0.5,{CAL[("dist",code)][t]}<0.5,(1-{CAL[("pairs",code)][t]})<0.5*(1-{CAL[("pairs","S1")][t]})),1,0)',D,'Signature de risque evergreen (ESMA 34-39-882)')
-    put(code,'verdict','Verdict de la date',lambda t:f'=IF(OR({R(code,"susp",t)}=1,{R(code,"defaut",t)}>1,{R(code,"file",t)}>S_file_rouge,{R(code,"poche",t)}<S_poche_rouge,{R(code,"couv",t)}<S_couv_rouge),"Rouge",IF(OR({R(code,"gated",t)}=1,{R(code,"poche",t)}<S_poche_orange,{R(code,"couv",t)}<S_couv_orange,{R(code,"gel",t)}=1),"Orange","Vert"))',None,'Seuils de l\'onglet Paramètres F',key_row=True)
-    verdict_cf(E.ws,f'C{ER[(code,"verdict")]}:J{ER[(code,"verdict")]}')
-    for cc in range(3,3+T): E.ws.cell(ER[(code,'verdict')],cc).alignment=al('center')
-    E.blank()
-    # résumé scénario
-    E.hdr(['Synthèse du scénario','Valeur','','','','','','','','Lecture'],h=16)
-    def srow(label,formula,fmt,nm_,note=''):
-        r=E.row([label,formula,None,None,None,None,None,None,None,note],fmts=[None,fmt],key=(1,)); bk.name(f'LST_{code}_{nm_}',E.ws,f'$C${r}'); return r
-    srow('Dates plafonnées ou suspendues',f'=SUM(C{ER[(code,"gated")]}:J{ER[(code,"gated")]})',D,'gated')
-    srow('File d\'attente maximale, % AN',f'=MAX(C{ER[(code,"file")]}:J{ER[(code,"file")]})',PCT,'file')
-    srow('File résiduelle à la date 8, % AN',f'=J{ER[(code,"file")]}',PCT,'file8','Indicateur unique du Conducting Officer (< 5 % vert, 5 à 15 % orange, 15 à 30 % élevé, > 30 % sévère)')
-    srow('Première date de suspension',f'=IFERROR(INDEX(C{ER[(code,"date")]}:J{ER[(code,"date")]},MATCH(1,C{ER[(code,"susp")]}:J{ER[(code,"susp")]},0)),"-")',DATE,'susp')
-    srow('Poche liquide minimale, % AN',f'=MIN(C{ER[(code,"poche")]}:J{ER[(code,"poche")]})',PCT,'poche')
-    srow('Couverture à douze mois minimale',f'=MIN(C{ER[(code,"couv")]}:J{ER[(code,"couv")]})',DEC,'couv')
-    srow('Rachats obtenus des fonds evergreen, cumul (EUR)',f'=SUM(C{ER[(code,"rach_evg")]}:J{ER[(code,"rach_evg")]})',EUR,'evg')
-    srow('Cessions secondaires, cumul (EUR)',f'=SUM(C{ER[(code,"cession")]}:J{ER[(code,"cession")]})',EUR,'cession')
-    srow('Décotes réalisées, cumul (EUR)',f'=SUM(C{ER[(code,"perte_hy")]}:J{ER[(code,"perte_hy")]})+SUM(C{ER[(code,"perte_c")]}:J{ER[(code,"perte_c")]})',EUR,'pertes')
-    srow('Défaut de liquidité, cumul (EUR)',f'=SUM(C{ER[(code,"defaut")]}:J{ER[(code,"defaut")]})',EUR,'defaut')
-    srow('Actif net à la date 8 / actif net de départ',f'=J{ER[(code,"anfin")]}/AN_depart-1',PCT,'an8')
-    srow('Première date de triple gel',f'=IFERROR(INDEX(C{ER[(code,"date")]}:J{ER[(code,"date")]},MATCH(1,C{ER[(code,"gel")]}:J{ER[(code,"gel")]},0)),"-")',DATE,'gel')
-    srow('Sur-engagement maximal',f'=MAX(C{ER[(code,"sureng")]}:J{ER[(code,"sureng")]})',PCT0,'sureng')
-    srow('Verdict LST du scénario',f'=IF(COUNTIF(C{ER[(code,"verdict")]}:J{ER[(code,"verdict")]},"Rouge")>0,"Rouge",IF(COUNTIF(C{ER[(code,"verdict")]}:J{ER[(code,"verdict")]},"Orange")>0,"Orange","Vert"))',None,'verdict','Pire verdict des huit dates')
-    verdict_cf(E.ws,f'C{E.r-1}')
-    E.blank(2)
-# resolve deferred row references {key} inside each scenario block
-import re
-for code,_,_ in SCEN:
-    keys={k:v for (c,k),v in ER.items() if c==code}
-    rows=[v for (c,k),v in ER.items() if c==code]
-    for rr in range(min(rows),max(rows)+1):
-        for cc in range(3,3+T):
-            c=E.ws.cell(rr,cc); v=c.value
-            if isinstance(v,str) and '{' in v:
-                c.value=re.sub(r'\{([a-z0-9_]+)\}',lambda m:str(keys[m.group(1)]),v)
 # ======================================================================= LST REVERSE
 RV=Sheet(bk,'LST Reverse','LST - TESTS INVERSÉS : TAUX DE RACHAT PERSISTANT, AVEC ET SANS PLAFONNEMENT','Moteur compact en % de l\'actif net de départ (actif net supposé constant, effet marché neutralisé) : un même taux de rachat demandé à chaque date, collecte nulle, flux de ressources du profil choisi dans l\'onglet Paramètres (par défaut le régime normal, pour isoler l\'effet des rachats ; 3 pour cumuler avec les flux S3). Cascade identique au moteur principal : poche liquide, rachats evergreen pour reconstituer la poche d\'exécution, cession secondaire décotée au-delà. Avec plafonnement : suspension après le nombre maximal de reports. L\'écart entre les deux points de rupture mesure la valeur du plafonnement.',
         [2,40,11,11,11,11,11,11,11,11,3,12,12,12,12,34],ncols=15)
 rates=[0.025,0.05,0.075,0.10,0.125,0.15,0.20,0.25,0.30]
 RV.sec('A. RESSOURCES PAR DATE EN % DE L\'ACTIF NET (profil de flux choisi, hors rachats et hors collecte)')
-RV.hdr(['Flux']+[f'Date {t+1}' for t in range(T)]+['','','','','Source'],h=16)
-rv_cap=RV.row(['Capacité de rachat des fonds evergreen']+[f'=({LP[2]["w"]}*{LP[2]["gate"]}+{LP[3]["w"]}*{LP[3]["gate"]})*2*(1-CHOOSE(Reverse_flux,{CAL[("pairs","S1")][t]},{CAL[("pairs","S2")][t]},{CAL[("pairs","S3")][t]},{CAL[("pairs","S4")][t]}))' for t in range(T)]+[None,None,None,None,'Gates trimestriels × 2, part des pairs déduite'],fmts=[None]+[PCT]*T)
-rv_dist=RV.row(['Distributions des fonds cibles']+[f'=(({LP[0]["w"]}*{LP[0]["dist"]}+{LP[1]["w"]}*{LP[1]["dist"]})+({LP[2]["w"]}*{LP[2]["dist"]}+{LP[3]["w"]}*{LP[3]["dist"]}))/2*CHOOSE(Reverse_flux,{CAL[("dist","S1")][t]},{CAL[("dist","S2")][t]},{CAL[("dist","S3")][t]},{CAL[("dist","S4")][t]})' for t in range(T)]+[None,None,None,None,'Multiplicateur S3'],fmts=[None]+[PCT]*T)
-rv_app=RV.row(['Appels des fonds fermés']+[f'=MIN(MAX(0,NA_total/AN_depart-SUM($C${RV.r}:{PC[t-1]}${RV.r})),NA_total/AN_depart*Appels_base*CHOOSE(Reverse_flux,{CAL[("appels","S1")][t]},{CAL[("appels","S2")][t]},{CAL[("appels","S3")][t]},{CAL[("appels","S4")][t]}))' if t>0 else f'=MIN(NA_total/AN_depart,NA_total/AN_depart*Appels_base*CHOOSE(Reverse_flux,{CAL[("appels","S1")][0]},{CAL[("appels","S2")][0]},{CAL[("appels","S3")][0]},{CAL[("appels","S4")][0]}))' for t in range(T)]+[None,None,None,None,'Jusqu\'à épuisement du non-appelé'],fmts=[None]+[PCT]*T)
-rv_fr=RV.row(['Frais du Fonds']+['=Frais_an/2' for t in range(T)]+[None,None,None,None,''],fmts=[None]+[PCT]*T)
-rv_net=RV.row(['Ressources nettes hors rachats']+[f'={PC[t]}{rv_dist}-{PC[t]}{rv_app}-{PC[t]}{rv_fr}' for t in range(T)]+[None,None,None,None,'Négatif : les appels dépassent les distributions'],fmts=[None]+[PCT]*T,key=tuple(range(1,T+1)))
+RV.hdr(['Flux']+[f'Date {t+1}' for t in range(TR)]+['','','','','Source'],h=16)
+rv_cap=RV.row(['Capacité de rachat des fonds evergreen']+[f'=(ALP!$D${AR[2]}*{LP[2]["gate"]}+ALP!$D${AR[3]}*{LP[3]["gate"]})*2*(1-CHOOSE(Reverse_flux,{CAL[("pairs","S1")][t]},{CAL[("pairs","S2")][t]},{CAL[("pairs","S3")][t]},{CAL[("pairs","S4")][t]}))' for t in range(TR)]+[None,None,None,None,'Gates trimestriels × 2, part des pairs déduite'],fmts=[None]+[PCT]*TR)
+rv_dist=RV.row(['Distributions des fonds cibles']+[f'=((ALP!$D${AR[0]}*{LP[0]["dist"]}+ALP!$D${AR[1]}*{LP[1]["dist"]})+(ALP!$D${AR[2]}*{LP[2]["dist"]}+ALP!$D${AR[3]}*{LP[3]["dist"]}))/2*CHOOSE(Reverse_flux,{CAL[("dist","S1")][t]},{CAL[("dist","S2")][t]},{CAL[("dist","S3")][t]},{CAL[("dist","S4")][t]})' for t in range(TR)]+[None,None,None,None,'Multiplicateur S3'],fmts=[None]+[PCT]*TR)
+rv_app=RV.row(['Appels des fonds fermés non couverts par la réserve']+[f'=MIN(MAX(0,NA_date1/ALP_AN-SUM($C${RV.r}:{PCR[t-1]}${RV.r})),NA_date1/ALP_AN*Appels_base*CHOOSE(Reverse_flux,{CAL[("appels","S1")][t]},{CAL[("appels","S2")][t]},{CAL[("appels","S3")][t]},{CAL[("appels","S4")][t]}))' if t>0 else f'=MIN(NA_date1/ALP_AN,NA_date1/ALP_AN*Appels_base*CHOOSE(Reverse_flux,{CAL[("appels","S1")][0]},{CAL[("appels","S2")][0]},{CAL[("appels","S3")][0]},{CAL[("appels","S4")][0]}))'+'*(1-Reserve_flag)' for t in range(TR)]+[None,None,None,None,'Jusqu\'à épuisement du non-appelé ; nuls si les engagements sont réservés'],fmts=[None]+[PCT]*TR)
+rv_fr=RV.row(['Frais du Fonds']+['=Frais_an/2' for t in range(TR)]+[None,None,None,None,''],fmts=[None]+[PCT]*TR)
+rv_net=RV.row(['Ressources nettes hors rachats']+[f'={PCR[t]}{rv_dist}-{PCR[t]}{rv_app}-{PCR[t]}{rv_fr}' for t in range(TR)]+[None,None,None,None,'Négatif : les appels dépassent les distributions'],fmts=[None]+[PCT]*TR,key=tuple(range(1,T+1)))
 RV.blank()
 hc3="CHOOSE(Reverse_flux,"+LP[0]['hc']['S2']+","+LP[0]['hc']['S2']+","+LP[0]['hc']['S3']+","+LP[0]['hc']['S4']+")"
 def reverse_block(gated):
     RV.sec(('B. AVEC PLAFONNEMENT' if gated else 'C. SANS PLAFONNEMENT')+('   (gate 5 % par date, reports automatiques, suspension après le nombre maximal de reports)' if gated else '   (gate levé par la Société de Gestion : toutes les demandes sont honorées)'))
-    RV.hdr(['Taux par date et variable']+[f'Date {t+1}' for t in range(T)]+['','File à la date 8','Poche min','Cessions à la date 4','Cessions à la date 8','Verdict'],h=28)
+    RV.hdr(['Taux par date et variable']+[f'Date {t+1}' for t in range(TR)]+['','File à la date 8','Poche min','Cessions à la date 4','Cessions à la date 8','Verdict'],h=28)
     first=RV.r; rows=[]
     for rt_ in rates:
         r0=RV.r
         RV.row([rt_]+[None]*T,fmts=[PCT],inputs=(0,))
         rate=f'$B${r0}'
-        rdem=RV.r; RV.row(['   Demande totale (nouvelle + reportée)']+[(f'={rate}' if t==0 else f'={rate}+{PC[t-1]}{rdem+2}') for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
+        rdem=RV.r; RV.row(['   Demande totale (nouvelle + reportée)']+[(f'={rate}' if t==0 else f'={rate}+{PCR[t-1]}{rdem+2}') for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
         rexe=RV.r
-        if gated: RV.row(['   Exécuté']+[f'=IF(AND({rate}>Gate+0.0001,{t+1}>Reports_max,Suspension_auto=1),0,MIN({PC[t]}{rdem},Gate))' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        else: RV.row(['   Exécuté']+[f'={PC[t]}{rdem}' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        rfile=RV.r; RV.row(['   File reportée']+[f'={PC[t]}{rdem}-{PC[t]}{rexe}' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        rpav=RV.r; RV.row(['   Poche liquide avant appel aux fonds cibles']+[((f'=W_cash+W_HY' if t==0 else f'={PC[t-1]}{rpav+3}')+f'-{PC[t]}{rexe}+{PC[t]}{rv_net}') for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        revg=RV.r; RV.row(['   Rachats obtenus des fonds evergreen']+[f'=MIN({PC[t]}{rv_cap},MAX(0,Poche_min_exec-{PC[t]}{rpav}))' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        rces=RV.r; RV.row(['   Cession secondaire (valeur cédée)']+[f'=IF(Cession_autorisee=1,MAX(0,Cash_min-({PC[t]}{rpav}+{PC[t]}{revg}))/(1-{hc3}),0)' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        rpf=RV.r; RV.row(['   Poche liquide de fin']+[f'={PC[t]}{rpav}+{PC[t]}{revg}+{PC[t]}{rces}*(1-{hc3})' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
-        rcum=RV.r; RV.row(['   Cessions cumulées']+[f'=SUM($C${rces}:{PC[t]}{rces})' for t in range(T)],fmts=[None]+[PCT]*T,bold_first=False)
+        if gated: RV.row(['   Exécuté']+[f'=IF(AND({rate}>Gate+0.0001,{t+1}>Reports_max,Suspension_auto=1),0,MIN({PCR[t]}{rdem},Gate))' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        else: RV.row(['   Exécuté']+[f'={PCR[t]}{rdem}' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        rfile=RV.r; RV.row(['   File reportée']+[f'={PCR[t]}{rdem}-{PCR[t]}{rexe}' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        rpav=RV.r; RV.row(['   Poche liquide avant appel aux fonds cibles']+[((f'=(ALP!$D${AR[5]}+ALP!$D${AR[4]})' if t==0 else f'={PCR[t-1]}{rpav+3}')+f'-{PCR[t]}{rexe}+{PCR[t]}{rv_net}') for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        revg=RV.r; RV.row(['   Rachats obtenus des fonds evergreen']+[f'=MIN({PCR[t]}{rv_cap},MAX(0,Poche_min_exec-{PCR[t]}{rpav}))' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        rces=RV.r; RV.row(['   Cession secondaire (valeur cédée)']+[f'=IF(Cession_autorisee=1,MAX(0,Cash_min-({PCR[t]}{rpav}+{PCR[t]}{revg}))/(1-{hc3}),0)' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        rpf=RV.r; RV.row(['   Poche liquide de fin']+[f'={PCR[t]}{rpav}+{PCR[t]}{revg}+{PCR[t]}{rces}*(1-{hc3})' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
+        rcum=RV.r; RV.row(['   Cessions cumulées']+[f'=SUM($C${rces}:{PCR[t]}{rces})' for t in range(TR)],fmts=[None]+[PCT]*TR,bold_first=False)
         # summary on the rate row
         ws=RV.ws
         for col,f,fmt in [(12,f'=J{rfile}',PCT),(13,f'=MIN(C{rpf}:J{rpf})',PCT),(14,f'=F{rcum}',PCT),(15,f'=J{rcum}',PCT)]:
             c=ws.cell(r0,col,f); c.number_format=fmt; c.font=F(True); c.alignment=al('right'); c.border=B_BOT
         if gated: v=f'=IF(AND({rate}>Gate+0.0001,Reports_max<8,Suspension_auto=1),"Rouge : suspension à la date "&(Reports_max+1),IF(N{r0}>0.0001,"Rouge : cessions décotées",IF(M{r0}<S_poche_rouge,"Rouge : poche sous 5 %",IF(OR(M{r0}<S_poche_orange,{rate}>Gate+0.0001),"Orange","Vert"))))'
-        else: v=f'=IF(O{r0}>({LP[0]["w"]}+{LP[1]["w"]}),"Rouge : cession impossible",IF(N{r0}>0.0001,"Rouge : cessions décotées",IF(M{r0}<S_poche_rouge,"Rouge : poche sous 5 %",IF(M{r0}<S_poche_orange,"Orange","Vert"))))'
+        else: v=f'=IF(O{r0}>(ALP!$D${AR[0]}+ALP!$D${AR[1]}),"Rouge : cession impossible",IF(N{r0}>0.0001,"Rouge : cessions décotées",IF(M{r0}<S_poche_rouge,"Rouge : poche sous 5 %",IF(M{r0}<S_poche_orange,"Orange","Vert"))))'
         c=ws.cell(r0,16,v); c.font=F(True); c.border=B_BOT; c.alignment=al('left')
         rows.append(r0)
     verdict_cf(RV.ws,f'P{rows[0]}:P{rows[-1]}')
     return rows
 rows_g=reverse_block(True)
-rg=RV.row(['Point de rupture : premier taux imposant des cessions décotées dans les quatre premières dates',None]+[None]*(T-1)+[None,None,None,None,None,'Avec le gate, la file absorbe l\'excès de demande ; la cession n\'intervient qu\'à cause des appels et des frais'],key=(1,))
+rg=RV.row(['Point de rupture : premier taux imposant des cessions décotées dans les quatre premières dates',None]+[None]*(TR-1)+[None,None,None,None,None,'Avec le gate, la file absorbe l\'excès de demande ; la cession n\'intervient qu\'à cause des appels et des frais'],key=(1,))
 RV.ws.cell(rg,3).value=ArrayFormula(f'C{rg}',f'=MIN(IF(N{rows_g[0]}:N{rows_g[-1]}>0.0001,B{rows_g[0]}:B{rows_g[-1]},9))'); RV.ws.cell(rg,3).number_format=PCT; bk.name('Rupture_gated',RV.ws,f'$C${rg}')
-rgs=RV.row(['Premier taux conduisant à la suspension',None]+[None]*(T-1)+[None,None,None,None,None,'Par construction : premier taux supérieur au plafond'],key=(1,))
+rgs=RV.row(['Premier taux conduisant à la suspension',None]+[None]*(TR-1)+[None,None,None,None,None,'Par construction : premier taux supérieur au plafond'],key=(1,))
 RV.ws.cell(rgs,3).value=ArrayFormula(f'C{rgs}',f'=MIN(IF(B{rows_g[0]}:B{rows_g[-1]}>Gate+0.0001,B{rows_g[0]}:B{rows_g[-1]},9))'); RV.ws.cell(rgs,3).number_format=PCT; bk.name('Rupture_suspension',RV.ws,f'$C${rgs}')
 RV.blank()
 rows_u=reverse_block(False)
-ru=RV.row(['Point de rupture : premier taux imposant des cessions décotées dans les quatre premières dates',None]+[None]*(T-1)+[None,None,None,None,None,'Sans gate, la poche et les flux S3 s\'épuisent dès les premières dates'],key=(1,))
+ru=RV.row(['Point de rupture : premier taux imposant des cessions décotées dans les quatre premières dates',None]+[None]*(TR-1)+[None,None,None,None,None,'Sans gate, la poche et les flux S3 s\'épuisent dès les premières dates'],key=(1,))
 RV.ws.cell(ru,3).value=ArrayFormula(f'C{ru}',f'=MIN(IF(N{rows_u[0]}:N{rows_u[-1]}>0.0001,B{rows_u[0]}:B{rows_u[-1]},9))'); RV.ws.cell(ru,3).number_format=PCT; bk.name('Rupture_ungated',RV.ws,f'$C${ru}')
-rui=RV.row(['Premier taux rendant la cession impossible à la date 8 (fonds fermés épuisés)',None]+[None]*(T-1)+[None,None,None,None,None,''],key=(1,))
-RV.ws.cell(rui,3).value=ArrayFormula(f'C{rui}',f'=MIN(IF(O{rows_u[0]}:O{rows_u[-1]}>({LP[0]["w"]}+{LP[1]["w"]}),B{rows_u[0]}:B{rows_u[-1]},9))'); RV.ws.cell(rui,3).number_format=PCT; bk.name('Rupture_impossible',RV.ws,f'$C${rui}')
-rvv=RV.row(['Valeur du plafonnement : écart des points de rupture (points de % AN par date)','=Rupture_gated-Rupture_ungated']+[None]*(T-1)+[None,None,None,None,None,'Nul si la poche s\'épuise avant que le gate ne joue : la protection du gate se lit alors sur les cessions'],fmts=[None,PCT],key=(1,)); bk.name('Valeur_gate',RV.ws,f'$C${rvv}')
-rv10=RV.row(['Cessions cumulées à la date 8 au taux de 10 % par date : avec plafonnement, puis sans',f'=O{rows_g[3]}',f'=O{rows_u[3]}']+[None]*(T-2)+[None,None,None,None,None,'Le gate transforme des cessions forcées en file d\'attente puis en suspension'],fmts=[None,PCT,PCT],key=(1,2)); bk.name('Cession_gate_10',RV.ws,f'$C${rv10}'); bk.name('Cession_nogate_10',RV.ws,f'$D${rv10}')
+rui=RV.row(['Premier taux rendant la cession impossible à la date 8 (fonds fermés épuisés)',None]+[None]*(TR-1)+[None,None,None,None,None,''],key=(1,))
+RV.ws.cell(rui,3).value=ArrayFormula(f'C{rui}',f'=MIN(IF(O{rows_u[0]}:O{rows_u[-1]}>(ALP!$D${AR[0]}+ALP!$D${AR[1]}),B{rows_u[0]}:B{rows_u[-1]},9))'); RV.ws.cell(rui,3).number_format=PCT; bk.name('Rupture_impossible',RV.ws,f'$C${rui}')
+rvv=RV.row(['Valeur du plafonnement : écart des points de rupture (points de % AN par date)','=Rupture_gated-Rupture_ungated']+[None]*(TR-1)+[None,None,None,None,None,'Nul si la poche s\'épuise avant que le gate ne joue : la protection du gate se lit alors sur les cessions'],fmts=[None,PCT],key=(1,)); bk.name('Valeur_gate',RV.ws,f'$C${rvv}')
+rv10=RV.row(['Cessions cumulées à la date 8 au taux de 10 % par date : avec plafonnement, puis sans',f'=O{rows_g[3]}',f'=O{rows_u[3]}']+[None]*(TR-2)+[None,None,None,None,None,'Le gate transforme des cessions forcées en file d\'attente puis en suspension'],fmts=[None,PCT,PCT],key=(1,2)); bk.name('Cession_gate_10',RV.ws,f'$C${rv10}'); bk.name('Cession_nogate_10',RV.ws,f'$D${rv10}')
 RV.blank()
 RV.sec('D. APPELS DE FONDS ACCÉLÉRÉS   non-appelé entièrement appelé sur douze mois, ressources S3, rachats au plafond')
 RV.hdr(['Non-appelé de départ (% AN)','Appels sur 12 mois (% AN)','Ressources 12 mois hors appels (% AN)','Rachats au plafond 12 mois (% AN)','Cession nécessaire (% AN)','Verdict','','','','','','','','',''],h=40)
 rc0=RV.r
 for na in [0.05,0.075,0.10,0.125,0.15,0.20,0.25,0.30]:
     r=RV.r
-    RV.row([na,f'=B{r}',f'=W_cash-Cash_min+W_HY*(1-{LP[4]["hc"]["S2"]})+C{rv_cap}+D{rv_cap}+C{rv_dist}+D{rv_dist}-C{rv_fr}-D{rv_fr}',f'=2*Gate',f'=MAX(0,C{r}+E{r}-D{r})/(1-{hc3})',f'=IF(F{r}>0.0001,"Rouge : cession forcée",IF(D{r}-C{r}-E{r}<S_poche_rouge,"Orange : poche épuisée","Vert"))'],fmts=[PCT,PCT,PCT,PCT,PCT],inputs=(0,))
+    RV.row([na,f'=B{r}',f'=(ALP!$D${AR[5]}-Cash_min)+ALP!$D${AR[4]}*(1-{LP[4]["hc"]["S2"]})+C{rv_cap}+D{rv_cap}+C{rv_dist}+D{rv_dist}-C{rv_fr}-D{rv_fr}',f'=2*Gate',f'=MAX(0,C{r}+E{r}-D{r})/(1-{hc3})',f'=IF(F{r}>0.0001,"Rouge : cession forcée",IF(D{r}-C{r}-E{r}<S_poche_rouge,"Orange : poche épuisée","Vert"))'],fmts=[PCT,PCT,PCT,PCT,PCT],inputs=(0,))
 rcl=RV.r-1
-rca=RV.row(['Point de rupture : premier niveau de non-appelé imposant une cession',None]+[None]*(T-1)+[None,None,None,None,None,'Plafond de sur-engagement : 130 % (art. 23)'],key=(1,))
+rca=RV.row(['Point de rupture : premier niveau de non-appelé imposant une cession',None]+[None]*(TR-1)+[None,None,None,None,None,'Plafond de sur-engagement : 130 % (art. 23)'],key=(1,))
 RV.ws.cell(rca,3).value=ArrayFormula(f'C{rca}',f'=MIN(IF(F{rc0}:F{rcl}>0.0001,B{rc0}:B{rcl},9))'); RV.ws.cell(rca,3).number_format=PCT; bk.name('Rupture_appels',RV.ws,f'$C${rca}')
 verdict_cf(RV.ws,f'G{rc0}:G{rcl}')
 # ======================================================================= CONCENTRATION
@@ -587,7 +615,7 @@ I.hdr(['Indicateur','S1 Base','S2 Plausible','S3 Sévère','S4 Extrême','Lectur
 def irow(label,fn,fmt,note='',key=False,center=False):
     r=I.row([label]+[fn(c) for c,_,_ in SCEN]+[note],fmts=[None]+[fmt]*4,key=(1,2,3,4) if key else (),aligns=[None]+(['center']*4 if center else [None]*4)); return r
 irow('Creux de VL hors flux (MST)',lambda c:f'=MST_{c}_creux',PCT,'Effet marché seul, transmission des chocs cotés incluse')
-irow('Semestre de retour au niveau de départ (MST)',lambda c:f'=MST_{c}_reprise',D)
+irow('Dates de rachat avant le retour au niveau d\'avant choc (MST)',lambda c:f'=MST_{c}_reprise',D)
 irow('Dates plafonnées ou suspendues (LST)',lambda c:f'=LST_{c}_gated',D)
 irow('File d\'attente maximale, % AN (LST)',lambda c:f'=LST_{c}_file',PCT)
 irow('File résiduelle à la date 8, % AN',lambda c:f'=LST_{c}_file8',PCT,'Indicateur unique du Conducting Officer',key=True)
@@ -608,7 +636,7 @@ I.blank()
 I.sec('B. SEUILS D\'ESCALADE   (Conducting Officer, Comité des risques)')
 I.hdr(['Déclencheur','Seuil','Valeur observée (S3)','État','','Action'],h=16)
 I.row(['File résiduelle à la date 8','=0.3','=LST_S3_file8','=IF(D'+str(I.r)+'>C'+str(I.r)+',"Rouge","Vert")',None,'Au-dessus de 30 % : réunion du Comité avant la prochaine date de rachat ; préparer la suspension'],fmts=[None,PCT,PCT])
-I.row(['Satisfaction des demandes à la date 1',"=0.8",f"=IFERROR(C{ER[('S3','exec')]}/C{ER[('S3','dem_tot')]},1)",'=IF(D'+str(I.r)+'<C'+str(I.r)+',"Orange","Vert")',None,'En dessous de 80 % : information du Comité et des distributeurs'],fmts=[None,PCT0,PCT0])
+I.row(['Satisfaction des demandes à la date 1',"=0.8",f"=IFERROR({PC[LOCK]}{ER[('S3','exec')]}/{PC[LOCK]}{ER[('S3','dem_tot')]},1)",'=IF(D'+str(I.r)+'<C'+str(I.r)+',"Orange","Vert")',None,'En dessous de 80 % : information du Comité et des distributeurs'],fmts=[None,PCT0,PCT0])
 I.row(['Poche liquide minimale','=S_poche_orange','=LST_S3_poche','=IF(D'+str(I.r)+'<C'+str(I.r)+',"Orange","Vert")',None,'Sous 15 % : plan de reconstitution à 30 jours ; suspension des souscriptions nettes dans les fonds fermés'],fmts=[None,PCT,PCT])
 I.row(['Creux de VL','=S_mst_orange','=-MST_S3_creux','=IF(D'+str(I.r)+'>C'+str(I.r)+',"Orange","Vert")',None,'Au-delà de 10 % : MST ad hoc et revue des VL des fonds cibles'],fmts=[None,PCT0,PCT])
 I.row(['Premier porteur','=0.2','=Top1','=IF(D'+str(I.r)+'>C'+str(I.r)+',"Rouge",IF(D'+str(I.r)+'>0.1,"Orange","Vert"))',None,'Au-dessus de 10 % : protocole de préavis renforcé avec le porteur'],fmts=[None,PCT0,PCT0])
@@ -633,24 +661,24 @@ for d in [('Prospectus et Règlement Openstone Infraworld, projet',dt.date(2026,
 S.blank()
 S.note('Règle de calibration des séries : rendements mensuels simples, composites équipondérés des titres disponibles (Brookfield exclu, INFR à partir de 2016), mois en cours exclu, rendements aberrants (|ln| > 0,6) ignorés. Écart-type semestriel = écart-type mensuel × √6 ; pires semestres sur fenêtres glissantes de six mois.',h=30)
 # ======================================================================= COMPARATIF DES TAILLES
-CP=Sheet(bk,'Comparatif tailles','COMPARATIF DES TAILLES DE LANCEMENT : 8, 15, 20, 25 ET 50 M€','Bloc A : allocation en formules (onglet Paramètres C). Bloc B : résultats du moteur pour chaque taille, obtenus par recalcul complet du classeur taille par taille (script tools/lst_mst_infraworld), valeurs figées à la date indiquée ; le sélecteur de l\'onglet Paramètres permet de rejouer une taille en direct.',
+CP=Sheet(bk,'Comparatif tailles','COMPARATIF DES TAILLES DE LANCEMENT : 8, 15, 20, 25 ET 50 M€','Bloc A : allocation au lancement en formules (onglet Paramètres C). Bloc B : résultats du moteur pour chaque taille, obtenus par recalcul complet du classeur taille par taille (script tools/lst_mst_infraworld), valeurs figées à la date indiquée ; le sélecteur de l\'onglet Paramètres permet de rejouer une taille en direct.',
         [2,46,14,14,14,14,14,40],ncols=7)
 CP.sec('A. ALLOCATION PAR TAILLE (formules)')
 CP.hdr(['Ligne']+[f'{z} M€' for z in SIZES]+['Lecture'],h=16)
-for lab,key,note in [('Actif net au lancement','an',''),('Engagement MAPIF II','cm','4 M sous dérogation jusqu\'à 15 M€ ; 5 M à 20 et 25 M€'),('Engagement MSIG 3','cs','Aucun sous 20 M€'),('MAPIF II appelé à la fin du blocage','fm',''),('MSIG 3 appelé à la fin du blocage','fs',''),('Non-appelé','na',''),('Trésorerie','ca','5 % de l\'actif net'),('Fonds HY UCITS','hy','10 % de l\'actif net'),('PG NGI','pg','Moitié du solde'),('Ares AGI','ar','Moitié du solde')]:
+for lab,key,note in [('Encours au lancement','an',''),('Engagement MAPIF II','cm','4 M sous dérogation jusqu\'à 15 M€ ; 5 M à 20 et 25 M€'),('Engagement MSIG 3','cs','Aucun sous 20 M€'),('Engagements fermés réservés en trésorerie','eng','Appelés sur trois ans'),('Appelé à la première date de rachat','ap1','Trois appels sur six'),('Trésorerie libre','ca','5 % de l\'encours'),('Fonds HY UCITS','hy','10 % de l\'encours'),('PG NGI','pg','Moitié du solde'),('Ares AGI','ar','Moitié du solde')]:
     CP.row([lab]+[f'=Paramètres!{L(3+i)}{SZ[key]}' for i in range(5)]+[note],fmts=[None]+[EUR]*5)
 CP.hdr(['Poids en % de l\'actif net']+[f'{z} M€' for z in SIZES]+[''],h=16)
-for lab,key in [('MAPIF II (appelé)','fm'),('MSIG 3 (appelé)','fs'),('PG NGI','pg'),('Ares AGI','ar'),('Fonds HY UCITS','hy'),('Trésorerie','ca'),('Non-appelé','na')]:
+for lab,key in [('Engagements fermés réservés','eng'),('PG NGI','pg'),('Ares AGI','ar'),('Fonds HY UCITS','hy'),('Trésorerie libre','ca')]:
     CP.row([lab]+[f'=Paramètres!{L(3+i)}{SZ[key]}/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+[''],fmts=[None]+[PCT]*5)
 CP.row(['Engagement MAPIF II en % de l\'actif net']+[f'=Paramètres!{L(3+i)}{SZ["cm"]}/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Concentration : 50 % à 8 M€'],fmts=[None]+[PCT]*5,key=(1,2,3,4,5))
-CP.row(['Sur-engagement']+[f'=(Paramètres!{L(3+i)}{SZ["an"]}+Paramètres!{L(3+i)}{SZ["na"]})/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Plafond 130 %'],fmts=[None]+[PCT0]*5)
+CP.row(['Sur-engagement au lancement']+[f'=(Paramètres!{L(3+i)}{SZ["an"]}+Paramètres!{L(3+i)}{SZ["eng"]}*(1-Reserve_flag))/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Plafond 130 % ; 100 % avec réserve'],fmts=[None]+[PCT0]*5)
 CP.row(['Frais totaux (part A1)']+[f'=Frais_var+MAX(Fee_SGP,SGP_min/Paramètres!{L(3+i)}{SZ["an"]})-Fee_SGP+Frais_fixes/Paramètres!{L(3+i)}{SZ["an"]}' for i in range(5)]+['Frais fixes rapportés à l\'encours'],fmts=[None]+[PCT2]*5)
 CP.blank()
 CP.sec('B. RÉSULTATS DU MOTEUR PAR TAILLE (valeurs figées)'+(f'   recalcul du {dt.date.today():%d/%m/%Y}' if RES else '   non renseigné : lancer le script'))
 if RES:
     for code,lab,desc in SCEN:
         CP.hdr([f'{code} {lab}']+[f'{z} M€' for z in SIZES]+['Lecture'],h=16)
-        for key,klab,fmt in [('creux','Creux de VL (MST)',PCT),('gated','Dates plafonnées ou suspendues',D),('file8','File résiduelle à la date 8 (% AN)',PCT),('susp','Première suspension',None),('poche','Poche liquide minimale (% AN)',PCT),('couv','Couverture à douze mois minimale',DEC),('cession','Cessions secondaires cumulées (EUR)',EUR),('pertes','Décotes réalisées (EUR)',EUR),('an8','Actif net à la date 8 / départ',PCT),('verdict','Verdict conjoint',None)]:
+        for key,klab,fmt in [('creux','Creux de VL (MST)',PCT),('gated','Dates plafonnées ou suspendues',D),('file8','File résiduelle à la date 8 (% AN)',PCT),('susp','Première suspension',None),('poche','Poche liquide minimale (% AN)',PCT),('couv','Couverture à douze mois minimale',DEC),('cession','Cessions secondaires cumulées (EUR)',EUR),('pertes','Décotes réalisées (EUR)',EUR),('an8','Actif net à la date 8 / lancement',PCT),('verdict','Verdict conjoint',None)]:
             vals=[RES[str(k+1)][code][key] for k in range(5)]
             r=CP.row([klab]+vals+[''],fmts=[None]+[fmt]*5,key=(1,2,3,4,5) if key=='verdict' else (),aligns=[None]+(['center']*5 if key=='verdict' else [None]*5))
             if key=='verdict': verdict_cf(CP.ws,f'C{r}:G{r}')
@@ -658,12 +686,14 @@ if RES:
     CP.note('Lecture : la taille modifie peu les mécanismes de passif (gate en % de l\'actif net) mais change la concentration (engagement MAPIF II jusqu\'à 50 % de l\'actif à 8 M€), le poids des frais fixes et l\'absence de MSIG 3 sous 20 M€. Les résultats de passif par taille sont proches ; les écarts viennent du non-appelé relatif et des frais.',h=30)
 # ======================================================================= TABLEAU DE BORD
 Dsh=Sheet(bk,'Tableau de bord','TABLEAU DE BORD LST ET MST - OPENSTONE INFRAWORLD, COMPARTIMENT I','="Date d\'arrêté : "&TEXT(DateArrete,"jj/mm/aaaa")',[2,44,15,15,15,15,44],ncols=6)
-Dsh.ws.cell(3,2).value=f'="Projection à partir de la fin du blocage ("&DAY(Date_depart)&"/"&RIGHT("0"&MONTH(Date_depart),2)&"/"&YEAR(Date_depart)&"), huit dates de rachat semestrielles, actif net de départ "&ROUND(AN_depart/1000000,0)&"{NB}M€. Phase : "&Phase&". Les cellules sont des formules vers les onglets de calcul."'
+Dsh.ws.cell(3,2).value=f'="Projection depuis le lancement ("&DAY(Date_lancement)&"/"&RIGHT("0"&MONTH(Date_lancement),2)&"/"&YEAR(Date_lancement)&") : trois semestres de blocage puis huit dates de rachat semestrielles. Encours au lancement "&ROUND(AN_depart/1000000,0)&"{NB}M€, engagements fermés "&ROUND(NA_total/1000000,1)&"{NB}M€ réservés en trésorerie. Les cellules sont des formules vers les onglets de calcul."'
 Dsh.sec('A. INDICATEURS DE TÊTE')
 Dsh.hdr(['Indicateur','Valeur','','','','Lecture'],h=16)
 def drow(label,f,fmt,note,key=True):
     r=Dsh.row([label,f,None,None,None,note],fmts=[None,fmt],key=(1,) if key else ()); return r
-drow('Taille de lancement retenue (sélecteur de l\'onglet Paramètres)','=AN_depart',EUR,'Comparatif des cinq tailles dans l\'onglet dédié')
+drow('Encours au lancement retenu (sélecteur de l\'onglet Paramètres)','=AN_depart',EUR,'Comparatif des cinq tailles dans l\'onglet dédié')
+drow('Actif net projeté à la première date de rachat (S1) et engagements fermés appelés',f"='LST Moteur'!{PC[LOCK]}{ER[('S1','an0')]}",EUR,'Collecte normale pendant le blocage ; trois appels sur six effectués')
+Dsh.ws.cell(Dsh.r-1,4).value=f"=NA_total-'LST Moteur'!{PC[LOCK]}{ER[('S1','na0')]}"; Dsh.ws.cell(Dsh.r-1,4).number_format=EUR; Dsh.ws.cell(Dsh.r-1,4).font=F(True); Dsh.ws.cell(Dsh.r-1,4).fill=fill(LIME)
 drow('Écart actif - passif en régime normal (jours)','=Ecart_TTL_N',D,'WATTL actif moins LTTL moyen ; porté par la poche liquide et le plafonnement')
 drow('Écart actif - passif en S3 (jours)','=Ecart_TTL_S3',D,'Justification structurelle du gate de 5 %')
 drow('Actifs liquides à 30 jours, normal / S3','=HQLA_N',PCT,'Trésorerie et fonds HY après haircut')
