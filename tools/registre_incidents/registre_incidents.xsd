@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schéma de l'export XML du registre des incidents et des escalades (Fundcraft France SAS).
+  Structure : en-tête, référentiels, incidents, indicateurs, ventilations, incidents signalés au comité.
+  Contrôles d'intégrité : référence d'incident unique, véhicule et niveau d'escalade déclarés dans les
+  référentiels, incident signalé présent dans le registre.
+  Conventions : dates et heures locales (Europe/Paris) sans fuseau ; montants en EUR ; taux en décimal
+  (0.875 = 87,5 %) ; un élément absent signifie « non renseigné » ou « non calculable » (n.d.).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ri="urn:fundcraft:registre-incidents"
+           targetNamespace="urn:fundcraft:registre-incidents"
+           elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+  <!-- Types simples -->
+  <xs:simpleType name="Texte"><xs:restriction base="xs:string"><xs:minLength value="1"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="ReferenceIncident"><xs:restriction base="xs:string"><xs:pattern value="INC-[0-9]{4}-[0-9]{3,}"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="Montant"><xs:restriction base="xs:decimal"><xs:fractionDigits value="2"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="Taux"><xs:restriction base="xs:decimal"><xs:minInclusive value="0"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="Gravite">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Faible"/><xs:enumeration value="Modéré"/>
+      <xs:enumeration value="Significatif"/><xs:enumeration value="Majeur"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StatutIncident">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Ouvert"/><xs:enumeration value="En remédiation"/><xs:enumeration value="Clôturé"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Categorie">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Opérationnel"/><xs:enumeration value="Dépassement de limite"/>
+      <xs:enumeration value="TIC / cyber"/><xs:enumeration value="Conformité / réclamation"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="RegimeLiquidite">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Evergreen"/><xs:enumeration value="Closed-end"/>
+      <xs:enumeration value="SGP (transverse)"/><xs:enumeration value="Non renseigné"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="TypeDepassement">
+    <xs:restriction base="xs:string"><xs:enumeration value="Actif"/><xs:enumeration value="Passif"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Sens">
+    <xs:restriction base="xs:string"><xs:enumeration value="Plafond"/><xs:enumeration value="Plancher"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StatutIndicateur">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Conforme"/><xs:enumeration value="Vigilance"/><xs:enumeration value="Alerte"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Types complexes communs -->
+  <xs:complexType name="Periode">
+    <xs:attribute name="code" type="ri:Texte" use="required"/>
+    <xs:attribute name="debut" type="xs:date" use="required"/>
+    <xs:attribute name="fin" type="xs:date" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="LibelleRang">
+    <xs:simpleContent>
+      <xs:extension base="ri:Texte"><xs:attribute name="rang" type="xs:nonNegativeInteger" use="required"/></xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="GraviteRang">
+    <xs:simpleContent>
+      <xs:extension base="ri:Gravite"><xs:attribute name="rang" type="xs:positiveInteger" use="required"/></xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="ComptageCategorie">
+    <xs:simpleContent>
+      <xs:extension base="xs:nonNegativeInteger"><xs:attribute name="libelle" type="ri:Categorie" use="required"/></xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="LigneVentilation">
+    <xs:sequence>
+      <xs:element name="Categorie" type="ri:ComptageCategorie" maxOccurs="unbounded"/>
+      <xs:element name="Total" type="xs:nonNegativeInteger"/>
+      <xs:element name="SignificatifsEtMajeurs" type="xs:nonNegativeInteger"/>
+      <xs:element name="PerteNetteEUR" type="ri:Montant"/>
+      <xs:element name="OuvertsALArrete" type="xs:nonNegativeInteger" minOccurs="0"/>
+      <xs:element name="EscaladesConformes" type="ri:Taux" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="libelle" type="ri:Texte" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="Ventilation">
+    <xs:sequence>
+      <xs:element name="Ligne" type="ri:LigneVentilation" maxOccurs="unbounded"/>
+      <xs:element name="Total" type="ri:LigneVentilation" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="perimetre" type="ri:Texte" use="required"/>
+  </xs:complexType>
+
+  <!-- Racine -->
+  <xs:element name="RegistreIncidents">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Entete">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SocieteDeGestion" type="ri:Texte"/>
+              <xs:element name="DateArrete" type="xs:date"/>
+              <xs:element name="Periode" type="ri:Periode"/>
+              <xs:element name="PeriodePrecedente" type="ri:Periode"/>
+              <xs:element name="DouzeMoisGlissants" type="ri:Periode"/>
+              <xs:element name="FichierSource" type="ri:Texte"/>
+              <xs:element name="NombreIncidents" type="xs:nonNegativeInteger"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="Referentiels">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Vehicules">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Vehicule" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Nom" type="ri:Texte"/>
+                          <xs:element name="Type" type="ri:Texte" minOccurs="0"/>
+                          <xs:element name="RegimeLiquidite" type="ri:RegimeLiquidite" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SousCategories">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="SousCategorie" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="ri:Texte"><xs:attribute name="categorie" type="ri:Categorie" use="required"/></xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="OriginesDetection">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Origine" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="ri:Texte"><xs:attribute name="dispositifControle" type="xs:boolean" use="required"/></xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="CausesRacines">
+                <xs:complexType><xs:sequence><xs:element name="Cause" type="ri:Texte" maxOccurs="unbounded"/></xs:sequence></xs:complexType>
+              </xs:element>
+              <xs:element name="NiveauxEscalade">
+                <xs:complexType><xs:sequence><xs:element name="Niveau" type="ri:LibelleRang" maxOccurs="unbounded"/></xs:sequence></xs:complexType>
+              </xs:element>
+              <xs:element name="Notifications">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Notification" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="ri:Texte"><xs:attribute name="delaiHeures" type="xs:nonNegativeInteger"/></xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="BaremeGravite">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Niveau" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="ImpactFinancierBrutMinEUR" type="ri:Montant"/>
+                          <xs:element name="InvestisseursLesesMin" type="xs:nonNegativeInteger"/>
+                          <xs:element name="EcartVLMinBps" type="xs:decimal"/>
+                          <xs:element name="NiveauEscaladeRequis" type="ri:Texte"/>
+                          <xs:element name="DelaiCibleEscaladeJO" type="xs:nonNegativeInteger"/>
+                          <xs:element name="DelaiCiblePriseEnCompteHeuresOuvrees" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="DelaiCibleResolutionJO" type="xs:nonNegativeInteger" minOccurs="0"/>
+                        </xs:sequence>
+                        <xs:attribute name="rang" type="xs:positiveInteger" use="required"/>
+                        <xs:attribute name="libelle" type="ri:Gravite" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Parametres">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Parametre" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="code" type="ri:Texte" use="required"/>
+                        <xs:attribute name="libelle" type="ri:Texte" use="required"/>
+                        <xs:attribute name="valeur" type="xs:string"/>
+                        <xs:attribute name="source" type="xs:string"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SeuilsIndicateurs">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Seuil" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="indicateur" type="ri:Texte" use="required"/>
+                        <xs:attribute name="sens" type="ri:Sens" use="required"/>
+                        <xs:attribute name="vigilance" type="xs:decimal" use="required"/>
+                        <xs:attribute name="alerte" type="xs:decimal" use="required"/>
+                        <xs:attribute name="source" type="xs:string"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="Incidents">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Incident" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Vehicule" type="ri:Texte"/>
+                    <xs:element name="TypeVehicule" type="ri:Texte" minOccurs="0"/>
+                    <xs:element name="RegimeLiquidite" type="ri:RegimeLiquidite" minOccurs="0"/>
+                    <xs:element name="SousCategorie" type="ri:Texte"/>
+                    <xs:element name="Categorie" type="ri:Categorie"/>
+                    <xs:element name="Description" type="ri:Texte"/>
+                    <xs:element name="OrigineDetection" type="ri:Texte" minOccurs="0"/>
+                    <xs:element name="AutoDetection" type="xs:boolean" minOccurs="0"/>
+                    <xs:element name="CauseRacine" type="ri:Texte" minOccurs="0"/>
+                    <xs:element name="Chronologie">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="DateSurvenance" type="xs:date" minOccurs="0"/>
+                          <xs:element name="DateHeureDetection" type="xs:dateTime"/>
+                          <xs:element name="DateDeclaration" type="xs:date" minOccurs="0"/>
+                          <xs:element name="DateHeurePriseEnCompte" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DateHeureResolution" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DateCloture" type="xs:date" minOccurs="0"/>
+                          <xs:element name="Trimestre" type="ri:Texte"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Statut" type="ri:StatutIncident"/>
+                    <xs:element name="Gravite">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Calculee" type="ri:GraviteRang"/>
+                          <xs:element name="Forcee" type="ri:Gravite" minOccurs="0"/>
+                          <xs:element name="Retenue" type="ri:GraviteRang"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Impact">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="PerteBruteEUR" type="ri:Montant" minOccurs="0"/>
+                          <xs:element name="RecouvrementEUR" type="ri:Montant" minOccurs="0"/>
+                          <xs:element name="PerteNetteEUR" type="ri:Montant"/>
+                          <xs:element name="EcartVLBps" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="InvestisseursLeses" type="xs:nonNegativeInteger" minOccurs="0"/>
+                          <xs:element name="IndemnisationInvestisseursEUR" type="ri:Montant" minOccurs="0"/>
+                          <xs:element name="ImpactReglementaire" type="ri:Texte" minOccurs="0"/>
+                          <xs:element name="ImpactReputationnel" type="ri:Texte" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Escalade">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="NiveauRequis" type="ri:LibelleRang"/>
+                          <xs:element name="NiveauAtteint" type="ri:LibelleRang"/>
+                          <xs:element name="DateEscalade" type="xs:date" minOccurs="0"/>
+                          <xs:element name="DelaiJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="DelaiCibleJO" type="xs:nonNegativeInteger"/>
+                          <xs:element name="Conforme" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="NombreReaffectations" type="xs:nonNegativeInteger" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Notification" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Autorite" type="ri:Texte"/>
+                          <xs:element name="Echeance" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DateHeureRealisee" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DansLeDelai" type="xs:boolean" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="DORA" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="DateHeureClassification" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="EcheanceNotificationInitiale" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DateHeureRapportIntermediaire" type="xs:dateTime" minOccurs="0"/>
+                          <xs:element name="DateRapportFinal" type="xs:date" minOccurs="0"/>
+                          <xs:element name="NotificationInitialeConforme" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="RapportIntermediaireConforme" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="RapportFinalConforme" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="Conforme" type="xs:boolean" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Reclamation" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="DateAccuseReception" type="xs:date" minOccurs="0"/>
+                          <xs:element name="DelaiAccuseReceptionJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="TraiteeDansLesDelais" type="xs:boolean" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Depassement" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Type" type="ri:TypeDepassement" minOccurs="0"/>
+                          <xs:element name="RegulariseDansLeDelai" type="xs:boolean" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Delais">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="DetectionJours" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="DeclarationJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="DeclarationDansLeDelai" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="PriseEnCompteHeuresOuvrees" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="CiblePriseEnCompteHeuresOuvrees" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="PriseEnCompteDansLeDelai" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="ResolutionJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="CibleResolutionJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="ResolutionDansLeDelai" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="ResoluSansEscaladeAuDelaDuMetier" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="TempsEnEscaladeJO" type="xs:integer" minOccurs="0"/>
+                          <xs:element name="ClotureJours" type="xs:integer" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="Suivi">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="OuvertALArrete" type="xs:boolean"/>
+                          <xs:element name="AgeALArreteJours" type="xs:nonNegativeInteger" minOccurs="0"/>
+                          <xs:element name="Reouvert" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="Recurrent" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="ControleSaisie" type="ri:Texte" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="ActionCorrective" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Libelle" type="ri:Texte" minOccurs="0"/>
+                          <xs:element name="Responsable" type="ri:Texte" minOccurs="0"/>
+                          <xs:element name="Echeance" type="xs:date" minOccurs="0"/>
+                          <xs:element name="DateRealisation" type="xs:date" minOccurs="0"/>
+                          <xs:element name="EnRetard" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="RealiseeALEcheance" type="xs:boolean" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="reference" type="ri:ReferenceIncident" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="Indicateurs">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Section" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Indicateur" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Libelle" type="ri:Texte"/>
+                          <xs:element name="Unite" type="ri:Texte"/>
+                          <xs:element name="ValeurPeriode" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="ValeurPeriodePrecedente" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="Variation" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="Valeur12Mois" type="xs:decimal" minOccurs="0"/>
+                          <xs:element name="Seuil" minOccurs="0">
+                            <xs:complexType>
+                              <xs:attribute name="sens" type="ri:Sens" use="required"/>
+                              <xs:attribute name="vigilance" type="xs:decimal" use="required"/>
+                              <xs:attribute name="alerte" type="xs:decimal" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                          <xs:element name="Statut" type="ri:StatutIndicateur" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="libelle" type="ri:Texte" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="Ventilations">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ParVehicule" type="ri:Ventilation"/>
+              <xs:element name="ParRegimeLiquidite" type="ri:Ventilation"/>
+              <xs:element name="EvolutionTrimestrielle" type="ri:Ventilation"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="IncidentsSignales">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="IncidentSignale" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType><xs:attribute name="reference" type="ri:ReferenceIncident" use="required"/></xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="perimetre" type="ri:Texte" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="dateGeneration" type="xs:dateTime" use="required"/>
+    </xs:complexType>
+
+    <!-- Intégrité référentielle -->
+    <xs:key name="cleIncident">
+      <xs:selector xpath="ri:Incidents/ri:Incident"/><xs:field xpath="@reference"/>
+    </xs:key>
+    <xs:keyref name="refIncidentSignale" refer="ri:cleIncident">
+      <xs:selector xpath="ri:IncidentsSignales/ri:IncidentSignale"/><xs:field xpath="@reference"/>
+    </xs:keyref>
+    <xs:key name="cleVehicule">
+      <xs:selector xpath="ri:Referentiels/ri:Vehicules/ri:Vehicule"/><xs:field xpath="ri:Nom"/>
+    </xs:key>
+    <xs:keyref name="refVehiculeIncident" refer="ri:cleVehicule">
+      <xs:selector xpath="ri:Incidents/ri:Incident"/><xs:field xpath="ri:Vehicule"/>
+    </xs:keyref>
+    <xs:key name="cleSousCategorie">
+      <xs:selector xpath="ri:Referentiels/ri:SousCategories/ri:SousCategorie"/><xs:field xpath="."/>
+    </xs:key>
+    <xs:keyref name="refSousCategorieIncident" refer="ri:cleSousCategorie">
+      <xs:selector xpath="ri:Incidents/ri:Incident"/><xs:field xpath="ri:SousCategorie"/>
+    </xs:keyref>
+    <xs:key name="cleNiveauEscalade">
+      <xs:selector xpath="ri:Referentiels/ri:NiveauxEscalade/ri:Niveau"/><xs:field xpath="."/>
+    </xs:key>
+    <xs:keyref name="refNiveauRequis" refer="ri:cleNiveauEscalade">
+      <xs:selector xpath="ri:Incidents/ri:Incident/ri:Escalade/ri:NiveauRequis"/><xs:field xpath="."/>
+    </xs:keyref>
+    <xs:keyref name="refNiveauAtteint" refer="ri:cleNiveauEscalade">
+      <xs:selector xpath="ri:Incidents/ri:Incident/ri:Escalade/ri:NiveauAtteint"/><xs:field xpath="."/>
+    </xs:keyref>
+  </xs:element>
+</xs:schema>
