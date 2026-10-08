@@ -8,11 +8,11 @@ hypothèses SGP non cotée) reprises dans l'onglet Données, où elles se modifi
 
 FONDS_PROD = [
     "AirFund Conviction Value Capital",
-    "Aletheon Growth III",
-    "FPS Openstone Infraworld",
-    "Otentiq Private Equity X SLP",
-    "Partners Group Private Equity Opportunities ELTIF Feeder",
-    "Fundcraft (SGP - transverse)",
+    "Openstone Infraworld",
+    "Aletheon Growth III S.L.P.",
+    "Partners Group PEO Eltif Feeder",
+    "Otentiq Private Equity X",
+    "Fundcraft France SAS",
 ]
 FONDS_DEMO = [
     "Fonds test 1 (FoF PE evergreen)",
