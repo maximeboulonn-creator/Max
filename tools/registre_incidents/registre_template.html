@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registre des incidents et des escalades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&family=Outfit:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : application de consultation à onglets sous un bandeau slate signé d'une bande lime ; synthèse avant détail, tableaux denses à filets */
+:root {
+  --surface: #ffffff; --carte: #f7f7f8; --encre: #2a3236; --encre-titre: #182a35; --encre-forte: #0b1519; --encre-note: #4a5a66;
+  --accent: #218e8e; --lime: #d9f785; --bandeau: #2f4858; --sur-bandeau: #ffffff; --sur-bandeau-note: #cdd8e2;
+  --filet: #dde4ea; --filet-fort: #9fb2c1; --entete: #2f4858; --sur-entete: #ffffff; --barre: #218e8e; --barre-fond: #e7eef1;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --ok-fg: #17614a; --ok-bg: #e1f3ea; --warn-fg: #7a4f00; --warn-bg: #fcefd2; --crit-fg: #9b2318; --crit-bg: #fbe3df;
+  --neutre-fg: #4a5a66; --neutre-bg: #eef1f3; --selection: #eefaf8; --focus: #218e8e;
+  --display: 'Outfit', 'Segoe UI', Arial, sans-serif; --texte: Calibri, 'Carlito', 'Segoe UI', Arial, sans-serif; --r: 4px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1b2b35; --carte: #233743; --encre: #e6edf2; --encre-titre: #ffffff; --encre-forte: #ffffff; --encre-note: #b9c7d2;
+    --accent: #d9f785; --filet: #34505f; --filet-fort: #738596; --barre: #8fd6cc; --barre-fond: #2b414e;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --ok-fg: #8fe0bd; --ok-bg: #1d4639; --warn-fg: #f3c86a; --warn-bg: #4a3913; --crit-fg: #ffa096; --crit-bg: #5b2520;
+    --neutre-fg: #b9c7d2; --neutre-bg: #2b414e; --selection: #26414e; --focus: #d9f785; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1b2b35; --carte: #233743; --encre: #e6edf2; --encre-titre: #ffffff; --encre-forte: #ffffff; --encre-note: #b9c7d2;
+  --accent: #d9f785; --filet: #34505f; --filet-fort: #738596; --barre: #8fd6cc; --barre-fond: #2b414e;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --ok-fg: #8fe0bd; --ok-bg: #1d4639; --warn-fg: #f3c86a; --warn-bg: #4a3913; --crit-fg: #ffa096; --crit-bg: #5b2520;
+  --neutre-fg: #b9c7d2; --neutre-bg: #2b414e; --selection: #26414e; --focus: #d9f785; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface); color: var(--encre); font-family: var(--texte); font-size: 12px; line-height: 1.45; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+[hidden] { display: none !important; }
+
+.bandeau { background: var(--bandeau); color: var(--sur-bandeau); display: grid; grid-template-columns: 10px 1fr; }
+.bandeau::before { content: ""; background: var(--lime); }
+.bandeau-in { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; justify-content: space-between; padding: 16px clamp(16px, 3vw, 32px) 14px; }
+.kicker { font-family: var(--display); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--lime); }
+h1 { font-family: var(--display); font-weight: 500; font-size: 22px; line-height: 1.2; margin: 2px 0 0; text-wrap: balance; }
+.sous-titre { color: var(--sur-bandeau-note); margin-top: 2px; }
+.meta { color: var(--sur-bandeau-note); font-size: 11px; text-align: right; }
+
+.onglets { border-bottom: 1px solid var(--filet); }
+.onglets-in { display: flex; gap: 4px; padding-inline: clamp(16px, 3vw, 32px); overflow-x: auto; }
+.onglet { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px 8px; cursor: pointer; color: var(--encre-note); font-family: var(--display); font-weight: 500; font-size: 13px; white-space: nowrap; }
+.onglet[aria-selected="true"] { color: var(--encre-titre); border-bottom-color: var(--accent); }
+.onglet .compte { font-family: var(--texte); font-weight: 700; font-size: 11px; margin-left: 4px; }
+main { padding: 16px clamp(16px, 3vw, 32px) 40px; max-width: 1360px; margin: 0 auto; }
+h2 { font-family: var(--display); font-weight: 500; font-size: 16px; color: var(--encre-titre); margin: 0; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+.note { color: var(--encre-note); font-size: 11px; }
+.bloc { min-width: 0; margin-bottom: 24px; }
+.bloc-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.grille { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+
+.synthese { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.tuile { border-top: 1px solid var(--filet-fort); padding-top: 8px; min-width: 0; }
+.tuile .lib { color: var(--encre-note); }
+.tuile .val { font-family: var(--display); font-size: 26px; line-height: 1.15; color: var(--encre-titre); font-variant-numeric: tabular-nums; }
+.tuile .sous { margin-top: 2px; }
+
+.pastille { display: inline-block; padding: 1px 6px; border-radius: var(--r); font-weight: 700; font-size: 11px; white-space: nowrap; background: var(--neutre-bg); color: var(--neutre-fg); }
+.pastille.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.pastille.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.pastille.crit { background: var(--crit-bg); color: var(--crit-fg); }
+
+.attention { list-style: none; margin: 0; padding: 0; }
+.attention li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--filet); }
+.attention .lib { color: var(--encre-forte); font-weight: 700; }
+.attention .ecart { color: var(--encre-note); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.defile { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: inherit; }
+th { background: var(--entete); color: var(--sur-entete); font-family: var(--display); font-weight: 600; font-size: 11px; text-align: left; padding: 6px 8px; white-space: nowrap; }
+th.num { text-align: right; }
+td { padding: 5px 8px; border-bottom: 1px solid var(--filet); vertical-align: baseline; }
+tr.section td { background: var(--carte); font-family: var(--display); font-weight: 600; color: var(--encre-titre); padding-top: 8px; }
+td.lib { color: var(--encre-forte); }
+td.forte { font-weight: 700; }
+td.ref { white-space: nowrap; }
+td.muet { color: var(--encre-note); }
+tr.total td { font-weight: 700; border-top: 1px solid var(--filet-fort); }
+.cle { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+.graphique { position: relative; }
+svg text { fill: var(--encre-note); font-family: var(--texte); font-size: 11px; }
+svg .grille-y { stroke: var(--filet); stroke-width: 1; }
+svg rect.seg { cursor: default; }
+.legende { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--encre); font-size: 11px; margin-top: 6px; }
+.infobulle { position: absolute; pointer-events: none; background: var(--entete); color: var(--sur-entete); padding: 6px 8px; border-radius: var(--r); font-size: 11px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.piste { display: inline-block; height: 8px; width: 80px; background: var(--barre-fond); border-radius: 2px; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+.piste span { display: block; height: 100%; background: var(--barre); }
+.lien { background: none; border: 0; padding: 0; color: var(--encre-forte); font-weight: 700; text-decoration: underline; text-decoration-color: var(--filet-fort); cursor: pointer; text-align: left; }
+
+.filtres { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-bottom: 12px; }
+.champ { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.champ > span { font-weight: 700; color: var(--encre-forte); font-size: 11px; }
+select, input[type="search"] { background: var(--surface); border: 1px solid var(--filet-fort); border-radius: var(--r); padding: 5px 8px; min-height: 30px; max-width: 100%; }
+.coche { display: flex; gap: 6px; align-items: center; padding-bottom: 6px; }
+.registre { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+#t-registre tbody tr { cursor: pointer; }
+#t-registre tbody tr:hover td { background: var(--carte); }
+#t-registre tbody tr[aria-selected="true"] td { background: var(--selection); }
+.detail { border-top: 3px solid var(--accent); background: var(--carte); border-radius: 0 0 var(--r) var(--r); padding: 14px 16px 16px; min-width: 0; position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 24px); overflow-y: auto; }
+.detail h2 { margin-bottom: 4px; }
+.pastilles { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.fiche { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 3px 10px; margin: 0 0 14px; }
+.fiche dt { color: var(--encre-note); }
+.fiche dd { margin: 0; color: var(--encre-forte); }
+.chrono { list-style: none; margin: 0 0 14px; padding: 0; border-left: 2px solid var(--filet-fort); }
+.chrono li { position: relative; padding: 0 0 8px 14px; }
+.chrono li::before { content: ""; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--carte); border: 2px solid var(--accent); }
+.chrono .etape { font-weight: 700; color: var(--encre-forte); }
+.vide { color: var(--encre-note); padding: 16px 0; }
+.ref-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+footer { color: var(--encre-note); font-size: 11px; border-top: 1px solid var(--filet); padding-top: 10px; margin-top: 8px; }
+
+@media (max-width: 900px) {
+  .grille, .registre { grid-template-columns: minmax(0, 1fr); }
+  .detail { position: static; max-height: none; }
+  .meta { text-align: left; }
+}
+</style>
+</head>
+<body>
+<header class="bandeau">
+  <div class="bandeau-in">
+    <div>
+      <div class="kicker">Risk management</div>
+      <h1>Registre des incidents et des escalades</h1>
+      <div class="sous-titre" id="sous-titre"></div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </div>
+</header>
+<nav class="onglets" aria-label="Sections">
+  <div class="onglets-in" role="tablist">
+    <button class="onglet" role="tab" id="tab-tableau" aria-selected="true" aria-controls="vue-tableau">Tableau de bord</button>
+    <button class="onglet" role="tab" id="tab-registre" aria-selected="false" aria-controls="vue-registre">Registre <span class="compte" id="compte"></span></button>
+    <button class="onglet" role="tab" id="tab-referentiels" aria-selected="false" aria-controls="vue-referentiels">Référentiels</button>
+  </div>
+</nav>
+<main>
+  <section id="vue-tableau" role="tabpanel" aria-labelledby="tab-tableau">
+    <div class="synthese" id="synthese"></div>
+    <div class="grille">
+      <div class="bloc">
+        <div class="bloc-titre"><h2>Points d'attention</h2><span class="note" id="att-note"></span></div>
+        <ul class="attention" id="attention"></ul>
+      </div>
+      <div class="bloc">
+        <div class="bloc-titre"><h2>Évolution trimestrielle par catégorie</h2><span class="note">Nombre d'incidents détectés</span></div>
+        <div class="graphique" id="graphique"></div>
+        <div class="legende" id="legende"></div>
+      </div>
+    </div>
+    <div class="bloc">
+      <div class="bloc-titre"><h2>Indicateurs</h2><span class="note" id="kpi-note"></span></div>
+      <div class="defile"><table id="t-kpi"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div class="bloc">
+      <div class="bloc-titre"><h2>Évolution trimestrielle - détail</h2></div>
+      <div class="defile"><table id="t-evol"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div class="grille">
+      <div class="bloc"><div class="bloc-titre"><h2>Par véhicule</h2><span class="note" id="vv-note"></span></div><div class="defile"><table id="t-vehicule"><thead></thead><tbody></tbody></table></div></div>
+      <div class="bloc"><div class="bloc-titre"><h2>Par régime de liquidité</h2><span class="note" id="vr-note"></span></div><div class="defile"><table id="t-regime"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+    <div class="bloc">
+      <div class="bloc-titre"><h2>Incidents signalés au Comité des risques</h2><span class="note" id="sig-note"></span></div>
+      <div class="defile"><table id="t-signales"><thead><tr><th>Incident</th><th>Véhicule</th><th>Gravité</th><th>Détection</th><th>Statut</th><th>Escalade atteinte</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="vue-registre" role="tabpanel" aria-labelledby="tab-registre" hidden>
+    <div class="filtres">
+      <label class="champ"><span>Recherche</span><input type="search" id="f-texte" placeholder="Référence ou description"></label>
+      <label class="champ"><span>Véhicule</span><select id="f-vehicule"></select></label>
+      <label class="champ"><span>Catégorie</span><select id="f-categorie"></select></label>
+      <label class="champ"><span>Gravité</span><select id="f-gravite"></select></label>
+      <label class="champ"><span>Statut</span><select id="f-statut"></select></label>
+      <label class="coche"><input type="checkbox" id="f-ouverts"> Ouverts à l'arrêté</label>
+    </div>
+    <div class="registre">
+      <div class="defile">
+        <table id="t-registre">
+          <thead><tr><th>Réf.</th><th>Véhicule</th><th>Sous-catégorie</th><th>Gravité</th><th>Statut</th><th class="num">Détection</th><th class="num">Clôture</th><th>Escalade</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="vide" id="r-vide" hidden>Aucun incident ne correspond aux filtres.</p>
+      </div>
+      <aside class="detail" id="detail" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="vue-referentiels" role="tabpanel" aria-labelledby="tab-referentiels" hidden>
+    <div class="ref-grille" id="referentiels"></div>
+  </section>
+  <footer id="pied"></footer>
+</main>
+<div class="infobulle" id="infobulle" hidden></div>
+
+<script type="application/json" id="donnees">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('donnees').textContent);
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const liste = v => v == null ? [] : Array.isArray(v) ? v : [v];
+const n = v => v == null || v === '' ? null : Number(typeof v === 'object' ? v.valeur : v);
+const t = v => v == null ? '' : (typeof v === 'object' ? (v.valeur ?? '') : v);
+const nf0 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NB = ' ';
+const pad = x => String(x).padStart(2, '0');
+function fd(s) { if (!s) return ''; const [d] = s.split('T'); const [y, m, j] = d.split('-'); return `${j}/${m}/${y}`; }
+function fdt(s) { if (!s) return ''; const h = s.split('T')[1]; return fd(s) + (h && h.slice(0, 5) !== '00:00' ? ' ' + h.slice(0, 5) : ''); }
+function fmt(v, u) {
+  if (v == null || Number.isNaN(v)) return 'n.d.';
+  switch (u) {
+    case '%': return nf1.format(v * 100) + NB + '%';
+    case 'EUR': return nf0.format(v) + NB + 'EUR';
+    case '‰': return nf1.format(v) + NB + '‰';
+    case 'x': return nf2.format(v) + 'x';
+    case 'nb': return Number.isInteger(v) ? nf0.format(v) : nf1.format(v);
+    default: return nf1.format(v);
+  }
+}
+function fvar(v, u) {
+  if (v == null) return '';
+  const s = v > 0 ? '+' : v < 0 ? '-' : '';
+  const a = Math.abs(v);
+  if (u === '%') return s + nf1.format(a * 100) + NB + 'pts';
+  return s + fmt(a, u).replace(NB + 'EUR', NB + 'EUR');
+}
+const CL = { 'Conforme': 'ok', 'Vigilance': 'warn', 'Alerte': 'crit' };
+const pastille = s => s ? `<span class="pastille ${CL[s] || ''}">${esc(s)}</span>` : '';
+const GRAV = { 'Faible': '', 'Modéré': '', 'Significatif': 'warn', 'Majeur': 'crit' };
+const pGrav = g => g ? `<span class="pastille ${GRAV[g] || ''}">${esc(g)}</span>` : '';
+const booleen = b => b === 'true' ? 'Oui' : b === 'false' ? 'Non' : '';
+
+const E = D.Entete, R = D.Referentiels;
+const INC = liste(D.Incidents && D.Incidents.Incident);
+const SECTIONS = liste(D.Indicateurs.Section);
+const KPI = SECTIONS.flatMap(s => liste(s.Indicateur).map(k => ({ ...k, section: s.libelle })));
+const kpi = lib => KPI.find(k => k.Libelle === lib);
+const CATS = liste(D.Ventilations.EvolutionTrimestrielle.Ligne[0] ? liste(D.Ventilations.EvolutionTrimestrielle.Ligne)[0].Categorie : []).map(c => c.libelle);
+
+function entete() {
+  $('sous-titre').textContent = `${E.SocieteDeGestion} - arrêté au ${fd(E.DateArrete)} - ${E.Periode.code} (période précédente ${E.PeriodePrecedente.code})`;
+  $('meta').innerHTML = `Export du ${fdt(D.dateGeneration)}<br>Source${NB}: ${esc(E.FichierSource)}`;
+  $('compte').textContent = E.NombreIncidents;
+  $('pied').innerHTML = `Données issues de l'export XML du registre (schéma urn:fundcraft:registre-incidents), lui-même produit à partir de ${esc(E.FichierSource)}. ` +
+    `Montants en EUR ; « n.d. » = non calculable faute de données. Consultation seule : les saisies se font dans le classeur. ` +
+    `Références${NB}: RD (UE) 231/2013, art. 13 ; Règlement (UE) 2022/2554 (DORA), art. 17 à 19 ; Instruction AMF DOC-2012-07.`;
+}
+
+function synthese() {
+  const P = E.Periode.code;
+  const tuiles = [
+    ['Incidents du trimestre', 'Incidents déclarés', 'ValeurPeriode', `${P}`],
+    ['Significatifs et majeurs', 'Incidents significatifs et majeurs', 'ValeurPeriode', `${P}`],
+    ['Perte nette 12 mois', 'Perte nette après recouvrement', 'Valeur12Mois', '12 mois glissants'],
+    ['Escalades conformes', 'Escalades conformes (niveau et délai)', 'ValeurPeriode', `${P}`],
+    ['Ouverts en fin de période', 'Incidents ouverts en fin de période', 'ValeurPeriode', `au ${fd(E.DateArrete)}`],
+    ['Actions correctives en retard', 'Actions correctives en retard', 'ValeurPeriode', `au ${fd(E.DateArrete)}`],
+  ];
+  $('synthese').innerHTML = tuiles.map(([lib, l, champ, sous]) => {
+    const k = kpi(l); if (!k) return '';
+    return `<div class="tuile"><div class="lib">${esc(lib)}</div><div class="val">${fmt(n(k[champ]), k.Unite)}</div>` +
+      `<div class="sous note">${esc(sous)} ${champ === 'ValeurPeriode' ? pastille(k.Statut) : ''}</div></div>`;
+  }).join('');
+}
+
+function attention() {
+  const ordre = { 'Alerte': 0, 'Vigilance': 1 };
+  const l = KPI.filter(k => k.Statut === 'Alerte' || k.Statut === 'Vigilance').sort((a, b) => ordre[a.Statut] - ordre[b.Statut]);
+  $('att-note').textContent = `${KPI.filter(k => k.Statut).length} indicateurs jugés sur ${KPI.length}`;
+  $('attention').innerHTML = l.length ? l.map(k => `<li><span class="lib">${esc(k.Libelle)}</span>` +
+    `<span class="ecart">${fmt(n(k.ValeurPeriode), k.Unite)} ; ${k.Seuil.sens === 'Plafond' ? 'alerte dès' : 'alerte sous'} ${fmt(n(k.Seuil.alerte), k.Unite)}</span>${pastille(k.Statut)}</li>`).join('')
+    : '<li><span>Aucun indicateur en alerte ou en vigilance.</span></li>';
+}
+
+function tableKpi() {
+  $('kpi-note').textContent = `${E.Periode.code} du ${fd(E.Periode.debut)} au ${fd(E.Periode.fin)} ; 12 mois glissants du ${fd(E.DouzeMoisGlissants.debut)} au ${fd(E.DouzeMoisGlissants.fin)}`;
+  $('t-kpi').querySelector('thead').innerHTML = `<tr><th>Indicateur</th><th>Unité</th><th class="num">${esc(E.Periode.code)}</th><th class="num">${esc(E.PeriodePrecedente.code)}</th>` +
+    `<th class="num">Variation</th><th class="num">12 mois</th><th class="num">Vigilance</th><th class="num">Alerte</th><th>Statut</th></tr>`;
+  $('t-kpi').querySelector('tbody').innerHTML = SECTIONS.map(s => `<tr class="section"><td colspan="9">${esc(s.libelle)}</td></tr>` +
+    liste(s.Indicateur).map(k => {
+      const u = k.Unite, sv = k.Seuil;
+      return `<tr><td class="lib">${esc(k.Libelle)}</td><td class="muet">${esc(u)}</td><td class="num forte">${fmt(n(k.ValeurPeriode), u)}</td>` +
+        `<td class="num">${fmt(n(k.ValeurPeriodePrecedente), u)}</td><td class="num muet">${fvar(n(k.Variation), u)}</td><td class="num">${fmt(n(k.Valeur12Mois), u)}</td>` +
+        `<td class="num muet">${sv ? fmt(n(sv.vigilance), u) : ''}</td><td class="num muet">${sv ? fmt(n(sv.alerte), u) : ''}</td><td>${pastille(k.Statut)}</td></tr>`;
+    }).join('')).join('');
+}
+
+function ventilation(id, v, titreCol, avecOuverts) {
+  const lignes = liste(v.Ligne), tot = v.Total;
+  const cats = liste(lignes[0] ? lignes[0].Categorie : []).map(c => c.libelle);
+  const max = Math.max(1, ...lignes.map(l => n(l.Total)));
+  $(id).querySelector('thead').innerHTML = `<tr><th>${esc(titreCol)}</th>${cats.map(c => `<th class="num">${esc(c)}</th>`).join('')}<th>Total</th>` +
+    `<th class="num">Signif. et majeurs</th><th class="num">Perte nette</th>${avecOuverts ? '<th class="num">Ouverts</th>' : '<th class="num">Escalades conformes</th>'}</tr>`;
+  const ligne = (l, total) => `<tr class="${total ? 'total' : ''}"><td class="lib">${esc(total ? 'Total' : l.libelle)}</td>` +
+    liste(l.Categorie).map(c => `<td class="num">${nf0.format(n(c))}</td>`).join('') +
+    `<td class="num">${total ? '' : `<span class="piste"><span style="width:${n(l.Total) / max * 100}%"></span></span>`}${nf0.format(n(l.Total))}</td>` +
+    `<td class="num">${nf0.format(n(l.SignificatifsEtMajeurs))}</td><td class="num">${fmt(n(l.PerteNetteEUR), 'EUR')}</td>` +
+    `<td class="num">${avecOuverts ? nf0.format(n(l.OuvertsALArrete)) : fmt(n(l.EscaladesConformes), '%')}</td></tr>`;
+  $(id).querySelector('tbody').innerHTML = lignes.map(l => ligne(l, false)).join('') + (tot ? ligne(tot, true) : '');
+}
+
+function graphique() {
+  const lignes = liste(D.Ventilations.EvolutionTrimestrielle.Ligne);
+  const data = lignes.map(l => liste(l.Categorie).map(c => n(c)));
+  const tot = data.map(d => d.reduce((a, b) => a + b, 0));
+  const maxT = Math.max(1, ...tot), pas = maxT > 12 ? 5 : 2, ymax = Math.ceil(maxT / pas) * pas;
+  const W = 560, H = 230, g = 30, dr = 8, bas = 26, haut = 16, lw = (W - g - dr) / lignes.length, bw = Math.min(56, lw * 0.56);
+  const y = v => haut + (H - haut - bas) * (1 - v / ymax);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Incidents par trimestre et par catégorie">`;
+  for (let v = 0; v <= ymax; v += pas) s += `<line class="grille-y" x1="${g}" x2="${W - dr}" y1="${y(v)}" y2="${y(v)}"></line><text x="${g - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  data.forEach((vals, i) => {
+    const x = g + lw * i + (lw - bw) / 2; let acc = 0;
+    const visibles = vals.map((v, ci) => [v, ci]).filter(([v]) => v > 0);
+    visibles.forEach(([v, ci], k) => {
+      const y0 = y(acc), y1 = y(acc + v), top = k === visibles.length - 1;
+      const h = Math.max(0, y0 - y1 - (k > 0 ? 2 : 0));
+      const yy = y1;
+      s += top ? `<path class="seg" data-i="${i}" data-c="${ci}" fill="var(--s${ci + 1})" d="M${x},${yy + h} V${yy + 4} Q${x},${yy} ${x + 4},${yy} H${x + bw - 4} Q${x + bw},${yy} ${x + bw},${yy + 4} V${yy + h} Z"></path>`
+        : `<rect class="seg" data-i="${i}" data-c="${ci}" x="${x}" y="${yy}" width="${bw}" height="${h}" fill="var(--s${ci + 1})"></rect>`;
+      acc += v;
+    });
+    if (tot[i]) s += `<text x="${x + bw / 2}" y="${y(tot[i]) - 5}" text-anchor="middle" style="fill:var(--encre-forte);font-weight:700">${tot[i]}</text>`;
+    s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${esc(lignes[i].libelle)}</text>`;
+  });
+  $('graphique').innerHTML = s + '</svg>';
+  $('legende').innerHTML = CATS.map((c, i) => `<span><i class="cle" style="background:var(--s${i + 1})"></i>${esc(c)}</span>`).join('');
+  const tip = $('infobulle');
+  $('graphique').addEventListener('mousemove', e => {
+    const el = e.target.closest('.seg');
+    if (!el) { tip.hidden = true; return; }
+    const i = +el.dataset.i, c = +el.dataset.c;
+    tip.innerHTML = `<b>${esc(lignes[i].libelle)}</b><br>${esc(CATS[c])}${NB}: ${data[i][c]}<br>Total${NB}: ${tot[i]}`;
+    tip.hidden = false;
+    tip.style.left = (e.pageX + 12) + 'px'; tip.style.top = (e.pageY - 12) + 'px';
+  });
+  $('graphique').addEventListener('mouseleave', () => { tip.hidden = true; });
+}
+
+function signales() {
+  const refs = liste(D.IncidentsSignales.IncidentSignale).map(x => x.reference);
+  $('sig-note').textContent = D.IncidentsSignales.perimetre;
+  $('t-signales').querySelector('tbody').innerHTML = refs.map(r => {
+    const i = INC.find(x => x.reference === r); if (!i) return '';
+    return `<tr><td><button class="lien" data-ref="${esc(r)}">${esc(r)}</button> <span class="muet">${esc(i.Description)}</span></td><td>${esc(i.Vehicule)}</td>` +
+      `<td>${pGrav(t(i.Gravite.Retenue))}</td><td class="num">${fd(i.Chronologie.DateHeureDetection)}</td><td>${esc(i.Statut)}</td><td>${esc(t(i.Escalade.NiveauAtteint))}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="muet">Aucun incident signalé.</td></tr>';
+}
+
+// Registre
+const etat = { sel: null };
+function options(id, vals, tous) { $(id).innerHTML = `<option value="">${tous}</option>` + vals.map(v => `<option>${esc(v)}</option>`).join(''); }
+function filtres() {
+  const q = $('f-texte').value.trim().toLowerCase(), v = $('f-vehicule').value, c = $('f-categorie').value, g = $('f-gravite').value, s = $('f-statut').value, o = $('f-ouverts').checked;
+  return INC.filter(i => (!q || (i.reference + ' ' + i.Description).toLowerCase().includes(q)) && (!v || i.Vehicule === v) && (!c || i.Categorie === c) &&
+    (!g || t(i.Gravite.Retenue) === g) && (!s || i.Statut === s) && (!o || i.Suivi.OuvertALArrete === 'true'))
+    .sort((a, b) => (b.Chronologie.DateHeureDetection > a.Chronologie.DateHeureDetection ? 1 : -1));
+}
+function registre() {
+  const l = filtres();
+  $('r-vide').hidden = l.length > 0;
+  $('t-registre').querySelector('tbody').innerHTML = l.map(i => {
+    const e = i.Escalade, conf = e.Conforme === 'true' ? '' : e.Conforme === 'false' ? ' <span class="pastille crit">non conforme</span>' : '';
+    return `<tr data-ref="${esc(i.reference)}" tabindex="0" aria-selected="${etat.sel === i.reference}"><td class="forte ref">${esc(i.reference)}</td><td>${esc(i.Vehicule)}</td>` +
+      `<td>${esc(i.SousCategorie)}</td><td>${pGrav(t(i.Gravite.Retenue))}</td><td>${esc(i.Statut)}</td><td class="num">${fd(i.Chronologie.DateHeureDetection)}</td>` +
+      `<td class="num">${fd(i.Chronologie.DateCloture)}</td><td>${esc(t(e.NiveauAtteint))}${conf}</td></tr>`;
+  }).join('');
+  detail();
+}
+function dl(paires) {
+  const p = paires.filter(([, v]) => v !== '' && v != null);
+  return p.length ? `<dl class="fiche">${p.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>` : '';
+}
+function detail() {
+  const i = INC.find(x => x.reference === etat.sel), el = $('detail');
+  if (!i) { el.innerHTML = '<h3>Fiche incident</h3><p class="note">Sélectionnez un incident pour afficher sa chronologie, sa gravité, son escalade et ses actions.</p>'; return; }
+  const c = i.Chronologie, g = i.Gravite, im = i.Impact || {}, e = i.Escalade, dly = i.Delais || {}, su = i.Suivi || {};
+  const etapes = [['Survenance', c.DateSurvenance], ['Détection', c.DateHeureDetection], ['Déclaration au registre', c.DateDeclaration],
+    ['Prise en compte', c.DateHeurePriseEnCompte], ['Escalade', e.DateEscalade], ['Notification', i.Notification && i.Notification.DateHeureRealisee],
+    ['Résolution', c.DateHeureResolution], ['Clôture', c.DateCloture]].filter(([, d]) => d).sort((a, b) => a[1] < b[1] ? -1 : 1);
+  const v = (x, u) => n(x) == null ? '' : fmt(n(x), u);
+  let html = `<h3>Fiche incident</h3><h2>${esc(i.reference)} - ${esc(i.Description)}</h2>` +
+    `<div class="pastilles">${pGrav(t(g.Retenue))}<span class="pastille">${esc(i.Statut)}</span><span class="pastille">${esc(i.Categorie)}</span>${i.DORA ? '<span class="pastille crit">DORA</span>' : ''}</div>` +
+    dl([['Véhicule', esc(i.Vehicule)], ['Type', esc(i.TypeVehicule)], ['Régime', esc(i.RegimeLiquidite)], ['Sous-catégorie', esc(i.SousCategorie)],
+      ['Origine', esc(i.OrigineDetection) + (i.AutoDetection === 'true' ? ' (dispositif de contrôle)' : '')], ['Cause racine', esc(i.CauseRacine)], ['Trimestre', esc(c.Trimestre)]]) +
+    `<h3>Chronologie</h3><ul class="chrono">${etapes.map(([l, d]) => `<li><span class="etape">${l}</span><br>${fdt(d)}</li>`).join('')}</ul>` +
+    `<h3>Gravité et impact</h3>` +
+    dl([['Gravité calculée', esc(t(g.Calculee))], ['Gravité forcée', esc(g.Forcee)], ['Gravité retenue', esc(t(g.Retenue))],
+      ['Perte brute', v(im.PerteBruteEUR, 'EUR')], ['Recouvrement', v(im.RecouvrementEUR, 'EUR')], ['Perte nette', v(im.PerteNetteEUR, 'EUR')],
+      ['Écart de VL', im.EcartVLBps ? esc(im.EcartVLBps) + NB + 'bps' : ''], ['Investisseurs lésés', esc(im.InvestisseursLeses)],
+      ['Indemnisation', v(im.IndemnisationInvestisseursEUR, 'EUR')], ['Impact réglementaire', esc(im.ImpactReglementaire)], ['Impact réputationnel', esc(im.ImpactReputationnel)]]) +
+    `<h3>Escalade</h3>` +
+    dl([['Niveau requis', esc(t(e.NiveauRequis))], ['Niveau atteint', esc(t(e.NiveauAtteint))], ['Date d\'escalade', fd(e.DateEscalade)],
+      ['Délai', e.DelaiJO != null ? `${esc(e.DelaiJO)} j.o. (cible ${esc(e.DelaiCibleJO)} j.o.)` : `cible ${esc(e.DelaiCibleJO)} j.o.`],
+      ['Conforme', e.Conforme === 'true' ? pastille('Conforme') : e.Conforme === 'false' ? pastille('Alerte').replace('Alerte', 'Non conforme') : ''],
+      ['Réaffectations', esc(e.NombreReaffectations)]]);
+  if (i.Notification) { const no = i.Notification; html += `<h3>Notification</h3>` + dl([['Autorité', esc(no.Autorite)], ['Échéance', fdt(no.Echeance)], ['Réalisée', fdt(no.DateHeureRealisee)], ['Dans le délai', booleen(no.DansLeDelai)]]); }
+  if (i.DORA) { const d = i.DORA; html += `<h3>DORA</h3>` + dl([['Classification', fdt(d.DateHeureClassification)], ['Échéance initiale', fdt(d.EcheanceNotificationInitiale)], ['Rapport intermédiaire', fdt(d.DateHeureRapportIntermediaire)], ['Rapport final', fd(d.DateRapportFinal)], ['Conforme', booleen(d.Conforme)]]); }
+  if (i.Reclamation) { const r = i.Reclamation; html += `<h3>Réclamation</h3>` + dl([['Accusé de réception', fd(r.DateAccuseReception)], ['Délai', r.DelaiAccuseReceptionJO != null ? esc(r.DelaiAccuseReceptionJO) + ' j.o.' : ''], ['Traitée dans les délais', booleen(r.TraiteeDansLesDelais)]]); }
+  if (i.Depassement) { const d = i.Depassement; html += `<h3>Dépassement de limite</h3>` + dl([['Type', esc(d.Type)], ['Régularisé dans le délai', booleen(d.RegulariseDansLeDelai)]]); }
+  html += `<h3>Délais et suivi</h3>` + dl([['Détection', dly.DetectionJours != null ? esc(dly.DetectionJours) + ' jours' : ''], ['Déclaration', dly.DeclarationJO != null ? esc(dly.DeclarationJO) + ' j.o. ' + (dly.DeclarationDansLeDelai === 'false' ? '(hors délai)' : '') : ''],
+    ['Prise en compte', dly.PriseEnCompteHeuresOuvrees ? `${esc(dly.PriseEnCompteHeuresOuvrees)} h ouvr. (cible ${esc(dly.CiblePriseEnCompteHeuresOuvrees)} h)` : ''],
+    ['Résolution', dly.ResolutionJO != null ? `${esc(dly.ResolutionJO)} j.o. (cible ${esc(dly.CibleResolutionJO)} j.o.)` : ''],
+    ['Clôture', dly.ClotureJours != null ? esc(dly.ClotureJours) + ' jours' : ''], ['Ouvert à l\'arrêté', booleen(su.OuvertALArrete)],
+    ['Âge à l\'arrêté', su.AgeALArreteJours ? esc(su.AgeALArreteJours) + ' jours' : ''], ['Récurrent', booleen(su.Recurrent)], ['Contrôle de saisie', esc(su.ControleSaisie)]]);
+  if (i.ActionCorrective) { const a = i.ActionCorrective; html += `<h3>Action corrective</h3>` + dl([['Action', esc(a.Libelle)], ['Responsable', esc(a.Responsable)], ['Échéance', fd(a.Echeance)], ['Réalisée le', fd(a.DateRealisation)], ['En retard', a.EnRetard === 'true' ? pastille('Alerte').replace('Alerte', 'En retard') : booleen(a.EnRetard)]]); }
+  el.innerHTML = html;
+}
+
+function referentiels() {
+  const tab = (titre, th, rows) => `<div class="bloc"><h3>${esc(titre)}</h3><div class="defile"><table><thead><tr>${th.map(h => `<th${h.startsWith('#') ? ' class="num"' : ''}>${esc(h.replace('#', ''))}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, j) => `<td${th[j].startsWith('#') ? ' class="num"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  const html = [
+    tab('Véhicules', ['Véhicule', 'Type', 'Régime de liquidité'], liste(R.Vehicules.Vehicule).map(v => [esc(v.Nom), esc(v.Type), esc(v.RegimeLiquidite || 'Non renseigné')])),
+    tab('Barème de gravité et matrice d\'escalade', ['Gravité', '#Impact brut dès (EUR)', '#Investisseurs dès', '#Écart VL dès (bps)', 'Escalade requise', '#Escalade (j.o.)', '#Prise en compte (h)', '#Résolution (j.o.)'],
+      liste(R.BaremeGravite.Niveau).map(b => [pGrav(b.libelle), nf0.format(n(b.ImpactFinancierBrutMinEUR)), esc(b.InvestisseursLesesMin), esc(b.EcartVLMinBps), esc(b.NiveauEscaladeRequis), esc(b.DelaiCibleEscaladeJO), esc(b.DelaiCiblePriseEnCompteHeuresOuvrees), esc(b.DelaiCibleResolutionJO)])),
+    tab('Niveaux d\'escalade', ['#Rang', 'Niveau'], liste(R.NiveauxEscalade.Niveau).map(x => [esc(x.rang), esc(x.valeur)])),
+    tab('Notifications', ['Notification', '#Délai (heures)'], liste(R.Notifications.Notification).map(x => [esc(t(x)), esc(x.delaiHeures)])),
+    tab('Paramètres', ['Paramètre', '#Valeur', 'Source'], liste(R.Parametres.Parametre).map(p => [esc(p.libelle), esc(p.valeur ?? 'à renseigner'), `<span class="muet">${esc(p.source)}</span>`])),
+    tab('Seuils des indicateurs', ['Indicateur', 'Sens', '#Vigilance', '#Alerte', 'Source'], liste(R.SeuilsIndicateurs.Seuil).map(s => {
+      const u = (kpi(s.indicateur) || {}).Unite || '';
+      return [esc(s.indicateur), esc(s.sens), fmt(n(s.vigilance), u), fmt(n(s.alerte), u), `<span class="muet">${esc(s.source)}</span>`];
+    })),
+    tab('Sous-catégories', ['Sous-catégorie', 'Catégorie'], liste(R.SousCategories.SousCategorie).map(x => [esc(x.valeur), esc(x.categorie)])),
+    tab('Origines de la détection', ['Origine', 'Dispositif de contrôle'], liste(R.OriginesDetection.Origine).map(x => [esc(x.valeur), booleen(x.dispositifControle)])),
+  ].join('');
+  $('referentiels').innerHTML = html;
+}
+
+function ouvrir(nom) { ['tableau', 'registre', 'referentiels'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === nom)); $('vue-' + v).hidden = v !== nom; }); }
+function voir(ref) { etat.sel = ref; ['f-texte', 'f-vehicule', 'f-categorie', 'f-gravite', 'f-statut'].forEach(id => { $(id).value = ''; }); $('f-ouverts').checked = false; registre(); ouvrir('registre'); }
+
+function init() {
+  entete(); synthese(); attention(); tableKpi(); graphique();
+  ventilation('t-evol', D.Ventilations.EvolutionTrimestrielle, 'Trimestre', false);
+  ventilation('t-vehicule', D.Ventilations.ParVehicule, 'Véhicule', true);
+  ventilation('t-regime', D.Ventilations.ParRegimeLiquidite, 'Régime', true);
+  $('vv-note').textContent = D.Ventilations.ParVehicule.perimetre; $('vr-note').textContent = D.Ventilations.ParRegimeLiquidite.perimetre;
+  signales(); referentiels();
+  options('f-vehicule', liste(R.Vehicules.Vehicule).map(v => v.Nom), 'Tous');
+  options('f-categorie', [...new Set(liste(R.SousCategories.SousCategorie).map(x => x.categorie))], 'Toutes');
+  options('f-gravite', liste(R.BaremeGravite.Niveau).map(b => b.libelle), 'Toutes');
+  options('f-statut', [...new Set(INC.map(i => i.Statut))], 'Tous');
+  const sig = liste(D.IncidentsSignales.IncidentSignale);
+  etat.sel = sig.length ? sig[0].reference : (INC[0] || {}).reference;
+  registre();
+  ['tableau', 'registre', 'referentiels'].forEach(v => $('tab-' + v).addEventListener('click', () => ouvrir(v)));
+  ['f-texte', 'f-vehicule', 'f-categorie', 'f-gravite', 'f-statut', 'f-ouverts'].forEach(id => $(id).addEventListener('input', registre));
+  const tb = $('t-registre').querySelector('tbody');
+  const choisir = tr => { if (!tr) return; etat.sel = tr.dataset.ref; tb.querySelectorAll('tr').forEach(x => x.setAttribute('aria-selected', String(x === tr))); detail(); };
+  tb.addEventListener('click', e => choisir(e.target.closest('tr')));
+  tb.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisir(e.target.closest('tr')); } });
+  $('t-signales').addEventListener('click', e => { const b = e.target.closest('[data-ref]'); if (b) voir(b.dataset.ref); });
+}
+init();
+</script>
+</body>
+</html>
