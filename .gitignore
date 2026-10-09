@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+tools/registre_incidents/tests_gs/*.json
+tools/registre_incidents/tests_gs/*.html
+tools/registre_incidents/tests_gs/*.png
