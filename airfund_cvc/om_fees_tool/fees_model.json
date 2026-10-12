@@ -1,0 +1,1437 @@
+{
+ "_doc": "Modèle de frais Fundcraft - port fidèle du classeur Fundcraft_AirFund_Modele_Frais_3.xlsx (onglets 01_Input, 02_Classes_de_Parts, 03_Detail_Depositaire_Valo, 04_Recap, 05_Tresorerie). Les valeurs ci-dessous sont celles du classeur ; les saisies de l'utilisateur sont des surcharges conservées dans le fichier.",
+ "source_file": "Fundcraft_AirFund_Modele_Frais_3.xlsx",
+ "nom_fonds": "AF CVC",
+ "echelle": {
+  "min": 5000000,
+  "max": 50000000,
+  "pas": 5000000,
+  "max_paliers": 150
+ },
+ "params": {
+  "nb_investisseurs": 60,
+  "cout_marginal_investisseur": 15,
+  "actif_net_prev_an1": 0,
+  "taux_constitution": 0.01,
+  "plancher_constitution": 60000,
+  "nb_distributions": 0,
+  "cout_par_distribution_cac": 1600,
+  "nb_kyc_gratuites": 100,
+  "taille_tranche_kyc": 100000000,
+  "cout_kyc_supp": 10
+ },
+ "params_meta": {
+  "nb_investisseurs": {
+   "label": "Nombre d'investisseurs (hypothèse fixe)",
+   "kind": "int",
+   "note": "alimente la Tenue du Passif (montant par porteur) et les Frais KYC"
+  },
+  "cout_marginal_investisseur": {
+   "label": "Coût marginal par investisseur, €/an (Tenue du Passif)",
+   "kind": "eur",
+   "note": "Annexe 11 de la Convention Dépositaire BFCM : 15 € par porteur et par an"
+  },
+  "actif_net_prev_an1": {
+   "label": "Actif Net prévisionnel au 1er anniversaire, € (Frais de Constitution)",
+   "kind": "eur",
+   "note": "0 dans le classeur : c'est le plancher de 60 000 € qui s'applique ; au-delà de 6 M€, 1 % de l'Actif Net dépasse le plancher"
+  },
+  "taux_constitution": {
+   "label": "Taux des Frais de Constitution (%)",
+   "kind": "pct",
+   "note": "Prospectus Art. 9.6"
+  },
+  "plancher_constitution": {
+   "label": "Plancher des Frais de Constitution (€)",
+   "kind": "eur",
+   "note": "Prospectus Art. 9.6 - provisionné sur le 1er exercice (05_Tresorerie §8)"
+  },
+  "nb_distributions": {
+   "label": "Nombre de distributions par an (Commissaire aux Comptes)",
+   "kind": "int",
+   "note": "0 : Fonds de capitalisation (Prospectus Art. 7.2) ; pilote aussi la fréquence de facturation du forfait CAC par distribution"
+  },
+  "cout_par_distribution_cac": {
+   "label": "Coût moyen par distribution, € (Commissaire aux Comptes)",
+   "kind": "eur",
+   "note": "pratique tarifaire du CAC, 1 600 € par distribution certifiée"
+  },
+  "nb_kyc_gratuites": {
+   "label": "Nombre de diligences KYC incluses par tranche (Frais KYC)",
+   "kind": "int",
+   "note": "Prospectus Art. 9.2(f)(i)"
+  },
+  "taille_tranche_kyc": {
+   "label": "Taille de la tranche d'AUM pour le renouvellement du forfait KYC, € (Frais KYC)",
+   "kind": "eur",
+   "note": "Prospectus Art. 9.2(f)(i)"
+  },
+  "cout_kyc_supp": {
+   "label": "Coût par diligence KYC supplémentaire, € (Frais KYC)",
+   "kind": "eur",
+   "note": "Prospectus Art. 9.2(f)(i)"
+  }
+ },
+ "classe_selectionnee": "A",
+ "valo": {
+  "frequence_vl": "Mensuelle",
+  "nb_lignes": 2,
+  "paliers": {
+   "Mensuelle": [
+    12000,
+    14000,
+    16000,
+    18000
+   ],
+   "Bi-mensuelle": [
+    17000,
+    20000,
+    22000,
+    24000
+   ]
+  },
+  "majoration": [
+   [
+    5,
+    0.15
+   ],
+   [
+    3,
+    0.1
+   ]
+  ],
+  "supplement": {
+   "lignes_incluses": 10,
+   "par_tranche": 10,
+   "montant": 500
+  }
+ },
+ "baremes": {
+  "seuil_t1": 100000000,
+  "seuil_t2": 500000000,
+  "gestion": [
+   0.0018,
+   0.0014,
+   0.0009
+  ],
+  "conseil": [
+   0.0045,
+   0.0035,
+   0.0025
+  ]
+ },
+ "reference": {
+  "taux_bp": 187,
+  "note": "Taux de référence (hors classeur) auquel la charge directe du Fonds est comparée pour le seuil de rentabilité : 187 bp = couche FPS annoncée au DIC des Parts A (1,871 %) ; 200 bp = plafond de commissions indirectes de l'Art. 9.5. Sans valeur contractuelle."
+ },
+ "classes": [
+  {
+   "nom": "A",
+   "distrib_global": 0.001,
+   "sous_distrib": 0.009,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "B",
+   "distrib_global": 0.001,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  },
+  {
+   "nom": "",
+   "distrib_global": 0,
+   "sous_distrib": 0,
+   "distribuante": "Non",
+   "commentaire": ""
+  }
+ ],
+ "lines": [
+  {
+   "id": "gestion",
+   "n": 1,
+   "actif": "Oui",
+   "nom": "Commission de Gestion",
+   "beneficiaire": "Société de Gestion (Fundcraft)",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 60000,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": {
+      "ref": "seuil_t1"
+     },
+     "nature": "Taux",
+     "valeur": {
+      "ref": "gestion_t1"
+     }
+    },
+    {
+     "inf": {
+      "ref": "seuil_t1"
+     },
+     "sup": {
+      "ref": "seuil_t2"
+     },
+     "nature": "Taux",
+     "valeur": {
+      "ref": "gestion_t2"
+     }
+    },
+    {
+     "inf": {
+      "ref": "seuil_t2"
+     },
+     "sup": null,
+     "nature": "Taux",
+     "valeur": {
+      "ref": "gestion_t3"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.2(a) : 0,18 % jusqu'à 100 M€, 0,14 % de 100 à 500 M€, 0,09 % au-delà ; minimum 60 000 € par an, facturé trimestriellement à hauteur de 15 000 € minimum ; calcul et prélèvement mensuels, prorata temporis. Barème saisi en 01_Input §3D (cellules grises ci-dessous).",
+   "tva": 0,
+   "freq": "Mensuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "conseil",
+   "n": 2,
+   "actif": "Oui",
+   "nom": "Commission de Conseil",
+   "beneficiaire": "Société de Conseil (AirFund / ONEWEALTHPLACE)",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": {
+      "ref": "seuil_t1"
+     },
+     "nature": "Taux",
+     "valeur": {
+      "ref": "conseil_t1"
+     }
+    },
+    {
+     "inf": {
+      "ref": "seuil_t1"
+     },
+     "sup": {
+      "ref": "seuil_t2"
+     },
+     "nature": "Taux",
+     "valeur": {
+      "ref": "conseil_t2"
+     }
+    },
+    {
+     "inf": {
+      "ref": "seuil_t2"
+     },
+     "sup": null,
+     "nature": "Taux",
+     "valeur": {
+      "ref": "conseil_t3"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.2(b) : 0,45 % jusqu'à 100 M€, 0,35 % de 100 à 500 M€, 0,25 % au-delà ; paiement mensuel, prorata temporis, à compter du Premier Jour de Souscription. Barème saisi en 01_Input §3D.",
+   "tva": 0,
+   "freq": "Mensuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "distrib_global",
+   "n": 3,
+   "actif": "Oui",
+   "nom": "Distribution — Distributeur Global",
+   "beneficiaire": "Distributeur Global (ONEWEALTHPLACE)",
+   "recurrent": "Oui",
+   "mode": "classe",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Taux",
+     "valeur": {
+      "ref": "distrib_global_classe"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.7(i) · Convention-cadre de distribution globale fundcraft × OneWealthPlace du 8 juillet 2026 : 0,10 % par an sur les Parts A et B. Taux de la classe sélectionnée (02_Classes_de_Parts).",
+   "tva": 0,
+   "freq": "Mensuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "distrib_sous",
+   "n": 4,
+   "actif": "Oui",
+   "nom": "Distribution — Sous-distributeurs",
+   "beneficiaire": "Sous-distributeurs (via le Distributeur Global)",
+   "recurrent": "Oui",
+   "mode": "classe",
+   "classe_taux": "sous",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Taux",
+     "valeur": {
+      "ref": "distrib_sous_classe"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.7(ii) · Addendum n° 1 et Annexe 2 de la convention de distribution : 0,90 % par an sur les seules Parts A, reversés par le Distributeur Global aux sous-distributeurs. Taux de la classe sélectionnée (02_Classes_de_Parts).",
+   "tva": 0,
+   "freq": "Mensuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "depositaire",
+   "n": 5,
+   "actif": "Oui",
+   "nom": "Commission Dépositaire (BFCM)",
+   "beneficiaire": "Dépositaire (BFCM)",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 12000,
+   "plafond": 50000,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Taux",
+     "valeur": 0.0003
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe 11 \"Conditions financières\" de la Convention Dépositaire – Société de Gestion BFCM / Fundcraft France SAS, applicable au 01/06/2026 (assiette : Actif Net Comptable). Taux de 0,030%, montant MINIMUM annuel de 12.000€/OPC, montant MAXIMUM annuel PLAFONNÉ à 50.000€/OPC. Remplace la précédente ventilation en 4 lignes (Garde/Contrôle/Teneur de registre/Distribution) : non retrouvée telle quelle dans la grille tarifaire réelle — probable reprise erronée d'un autre document. Un forfait spécifique de liquidation existe séparément (voir ligne dédiée, à activer le cas échéant en désactivant celle-ci).",
+   "tva": 0.2,
+   "freq": "Semestriel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "cac",
+   "n": 6,
+   "actif": "Oui",
+   "nom": "Commissaire aux Comptes",
+   "beneficiaire": "CAC",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 5500
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Lettre de mission Aplitec du 01/07/2026 (associé signataire Maxime Gallet, chef de mission Antony Aplogan), spécifique au FIPS AirFund Conviction Value Capital : honoraires de 5.500€ HT/an, correspondant à 2 interventions semestrielles (contrôle des situations semestrielles + comptes annuels). Ce montant est calculé par le CAC en fonction de la taille visée DE CE FONDS (objectif de collecte 30M€, hard cap 70-100M€) — CE N'EST PAS un tarif fixe applicable à tous les fonds Fundcraft (contrairement au coût par distribution ci-dessous, lui issu d'une pratique tarifaire générique du même CAC) : cellule volontairement laissée éditable (lime), reprise ici à 5.500€ par défaut (valeur AirFund) à confirmer/ajuster avec le CAC pour chaque nouveau fonds — et remise à blanc dans le modèle vierge. Hors forfait, facturés en sus par le CAC : TVA, frais de déplacement, et cotisation H2A (~100€ HT/an) — non modélisés séparément ici, montants mineurs au vu de la matérialité de ce poste.",
+   "tva": 0.2,
+   "freq": "Semestriel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "cac_distribution",
+   "n": 7,
+   "actif": "Oui",
+   "nom": "CAC — Frais par Distribution",
+   "beneficiaire": "CAC",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": {
+      "ref": "cac_distribution"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Pratique tarifaire générique du CAC (Aplitec, e-mail du 11/09/2026) : 1 600 € par distribution certifiée. Forfait = nombre de distributions par an × coût par distribution (01_Input §3), uniquement si la classe sélectionnée est distribuante.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "par_distribution",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "rapport_annuel",
+   "n": 8,
+   "actif": "Oui",
+   "nom": "Reporting — Rapport Annuel (CIC)",
+   "beneficiaire": "CIC Administration de Fonds",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 800
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe Tarifaire du \"CONTRAT DE DELEGATION DE VALORISATION ENTRE FUNDCRAFT FRANCE SAS ET CIC\" signé le 24/06/2026, section II.B.1 \"Rapport annuel\" : commission forfaitaire de 800€HT par an et par FIA. ⚠ Précédemment classée par erreur sous \"Valorisation\" — c'est une prestation de reporting.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "valorisation",
+   "n": 9,
+   "actif": "Oui",
+   "nom": "Valorisation (CIC)",
+   "beneficiaire": "Valorisateur (CIC / SOC Asset Servicing)",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": 40000000,
+     "nature": "Palier",
+     "valeur": {
+      "ref": "valo_p1"
+     }
+    },
+    {
+     "inf": 40000000,
+     "sup": 80000000,
+     "nature": "Palier",
+     "valeur": {
+      "ref": "valo_p2"
+     }
+    },
+    {
+     "inf": 80000000,
+     "sup": 120000000,
+     "nature": "Palier",
+     "valeur": {
+      "ref": "valo_p3"
+     }
+    },
+    {
+     "inf": 120000000,
+     "sup": null,
+     "nature": "Palier",
+     "valeur": {
+      "ref": "valo_p4"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": {
+      "ref": "valo_supplement"
+     }
+    }
+   ],
+   "source": "Annexe Tarifaire du \"CONTRAT DE DELEGATION DE VALORISATION ENTRE FUNDCRAFT FRANCE SAS ET CIC\" signé le 24/06/2026, section I.B. 4 tranches \"Palier\" exclusives par Actif Net (0-40M/40-80M/80-120M/>120M€), montant selon la fréquence de VL choisie en §3C, majoré de +10% (3-4 catégories de parts) ou +15% (5 et plus, cas d'Openstone avec 9 classes), + supplément de 500€ par tranche de 10 lignes de portefeuille au-delà de 10 (tranche Forfait séparée, toujours active). ⚠ Remplace le précédent forfait de 12.000€ (recopié par erreur du Dépositaire). Le barème \"Période de liquidation de l'OPC\" (14.000€/12.000€) n'est pas modélisé ici (dépend du statut du fonds, pas de l'AUM) : à activer manuellement le cas échéant.",
+   "tva": 0.2,
+   "freq": "Semestriel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "reporting_aifm",
+   "n": 10,
+   "actif": "Non",
+   "nom": "Reporting AIFM (part refacturée au fonds)",
+   "beneficiaire": "Prestataire reporting",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 500
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe Tarifaire du \"CONTRAT DE DELEGATION DE VALORISATION ENTRE FUNDCRAFT FRANCE SAS ET CIC\" signé le 24/06/2026, section II.B.3 \"AIFM – Reporting périodique complet ou push de données\" : 3.000€HT à la mise en place (mutualisé, absorbé par la SGP, non modélisé ici) + 500€HT par reporting annuel et par FIA (modélisé ici). Ce même document précise explicitement \"Non retenu par la société de gestion\" pour cette prestation — désactivée (Actif = Non) le 14/09/2026 en conséquence, à la demande d'Apolline. Ne réactiver que si Fundcraft souscrit effectivement cette option auprès de CIC pour ce fonds.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "tenue_passif",
+   "n": 11,
+   "actif": "Oui",
+   "nom": "Tenue du Passif",
+   "beneficiaire": "Teneur de registre / Transfer Agent",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 1000
+    },
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": {
+      "ref": "tenue_passif_variable"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe 11 de la Convention Dépositaire BFCM (applicable au 01/06/2026) : forfait fixe de 1.000€/OPC + montant annuel par porteur (15€ ci-dessous, paramètre §3). Confirmé conforme à la grille tarifaire réelle.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "finologee",
+   "n": 12,
+   "actif": "Oui",
+   "nom": "Finologee",
+   "beneficiaire": "Finologee",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 1392
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "116€HT par OPC et par mois, soit 1.392€HT/an (116 x 12) — forfait fixe indépendant de l'Actif Net du fonds. Facturé et payé mensuellement (virement automatique le 10 de chaque mois, par fonds) — fréquence \"Mensuel\" pré-réglée dans 05_Tresorerie §3 en conséquence. SANS PRORATA sur le mois de lancement (confirmé par Apolline, 14/09/2026 : \"un mois entamé est dû en totalité\") — contrairement aux autres postes mensuels, dont le tout premier mois est proratisé en jours ouvrés (05_Tresorerie §1/§5) : le virement Finologee est un forfait mensuel fixe, pas un service facturé au prorata du temps réellement presté. Poste TOUJOURS présent, sur tous les fonds Fundcraft (confirmé par Apolline, 14/09/2026) : traité comme les autres plaquettes tarifaires prestataires (Dépositaire BFCM, Valorisation/Reporting CIC) — verrouillé (gris), pas une donnée propre au fonds testé. ⚠ Confiance MOYENNE sur le montant : information communiquée directement par Apolline en conversation, non retrouvée à ce jour dans une convention Finologee signée dans les pièces disponibles pour AirFund — à sourcer avec le contrat Finologee dès qu'il est disponible et à corriger ici si le montant réel diffère.",
+   "tva": 0.2,
+   "freq": "Mensuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Non"
+  },
+  {
+   "id": "kyc",
+   "n": 13,
+   "actif": "Oui",
+   "nom": "Frais KYC (au-delà du forfait inclus)",
+   "beneficiaire": "Société de Gestion (Fundcraft)",
+   "recurrent": "Oui",
+   "mode": "kyc",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.2(f)(i) : 100 diligences KYC incluses par tranche cumulée de 100 M€ ; au-delà, 10 € par diligence. Formule du classeur : MAX(0 ; Investisseurs − 100 × (ENT(Actif Net ÷ 100 M€) + 1)) × 10 € (01_Input §3).",
+   "tva": 0,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "constitution",
+   "n": 14,
+   "actif": "Non",
+   "nom": "Frais de Constitution (hors barème — actif par défaut, voir 05_Tresorerie)",
+   "beneficiaire": "Divers (avocat, dépositaire, AMF...)",
+   "recurrent": "Non",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": {
+    "ref": "constitution_plancher"
+   },
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": {
+      "ref": "constitution_montant"
+     }
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Prospectus Art. 9.6 : MAX(60 000 € ; 1 % HT de l'Actif Net au premier anniversaire du Premier Jour de Souscription). Ligne volontairement inactive dans le barème : les Frais de Constitution sont traités en 05_Tresorerie §8 (provision sur le 1er exercice, suivi des factures réelles).",
+   "tva": 0,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "depo_liquidation",
+   "n": 15,
+   "actif": "Non",
+   "nom": "Dépositaire — Forfait liquidation (ANC<5M€)",
+   "beneficiaire": "Dépositaire (BFCM)",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 7000
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe 11 de la Convention Dépositaire BFCM : forfait spécifique de 7.000€ pour les OPC en liquidation dont l'ANC est inférieur à 5M€. À activer (et à désactiver \"Commission Dépositaire (BFCM)\" en parallèle) uniquement lorsque le fonds est effectivement en phase de liquidation.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "euroclear",
+   "n": 16,
+   "actif": "Non",
+   "nom": "Dépositaire — Admission Euroclear (par ISIN)",
+   "beneficiaire": "Dépositaire (BFCM)",
+   "recurrent": "Non",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 1000
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe 11 de la Convention Dépositaire BFCM : 1.000€ par code ISIN admis à l'admission Euroclear France. Frais ponctuel (à l'acte), à activer l'année d'admission d'une nouvelle classe/ligne.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "solvabilite2",
+   "n": 17,
+   "actif": "Non",
+   "nom": "Reporting — Solvabilité II (optionnel)",
+   "beneficiaire": "Prestataire reporting",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": null,
+     "nature": "Forfait",
+     "valeur": 500
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "Annexe Tarifaire du \"CONTRAT DE DELEGATION DE VALORISATION ENTRE FUNDCRAFT FRANCE SAS ET CIC\" signé le 24/06/2026, section II.B.2 : fourniture de données d'inventaires transparisés sur demande (investisseurs assurantiels). Commission forfaitaire de 3.000€ à la mise en place (mutualisée, non modélisée ici, cf. Reporting AIFM) + 500€ par reporting, modélisé ici. Ce même document précise \"Non retenu par la société de gestion\" — cohérent avec Actif = Non par défaut. À activer seulement si le fonds compte des investisseurs assujettis à Solvabilité II ET que Fundcraft souscrit effectivement cette option.",
+   "tva": 0.2,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "libre18",
+   "n": 18,
+   "actif": "Non",
+   "nom": "",
+   "beneficiaire": "",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "",
+   "tva": 0,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "libre19",
+   "n": 19,
+   "actif": "Non",
+   "nom": "",
+   "beneficiaire": "",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "",
+   "tva": 0,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  },
+  {
+   "id": "libre20",
+   "n": 20,
+   "actif": "Non",
+   "nom": "",
+   "beneficiaire": "",
+   "recurrent": "Oui",
+   "mode": "bareme",
+   "classe_taux": "global",
+   "plancher": 0,
+   "plafond": null,
+   "tranches": [
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    },
+    {
+     "inf": 0,
+     "sup": 0,
+     "nature": "Taux",
+     "valeur": 0
+    }
+   ],
+   "source": "",
+   "tva": 0,
+   "freq": "Annuel",
+   "regle_facturation": "standard",
+   "prorata_lancement": "Oui"
+  }
+ ],
+ "treso": {
+  "lancement": "2026-08-13",
+  "fin_exercice_1": "2027-12-31",
+  "horizon": 24,
+  "aum_mensuel": [
+   6120000,
+   10350000
+  ],
+  "aum_note": "Actif Net du Fonds mois par mois, en euros : réel pour les mois clos, prévisionnel pour les suivants. Dans le classeur, un mois sans Actif Net ne produit aucun montant ; ici la dernière valeur saisie est reconduite sur les mois suivants (affichée en grisé) pour que le prévisionnel couvre tout l'horizon.",
+  "factures_constitution": [
+   {
+    "id": "x1",
+    "label": "Fundcraft",
+    "amount": 10000,
+    "inv": "2026-08-31",
+    "pay": ""
+   },
+   {
+    "id": "x2",
+    "label": "Set up cost BFCM",
+    "amount": 2500,
+    "inv": "2026-09-30",
+    "pay": ""
+   },
+   {
+    "id": "x3",
+    "label": "Avocate",
+    "amount": 10000,
+    "inv": "2026-09-30",
+    "pay": ""
+   }
+  ]
+ },
+ "documentation": [
+  {
+   "title": "01_INPUT - 4. FRAIS & PROVISIONS DU FONDS",
+   "items": [
+    {
+     "k": "Description",
+     "v": "Une ligne par frais ou provision du fonds (jusqu'à 5 tranches Forfait/Taux/Palier chacune). Forfait = montant fixe dès que l'AUM atteint la borne inférieure (plusieurs Forfait sur une même ligne se cumulent — utile pour un forfait de base + un montant variable par ailleurs, comme la Tenue du Passif). Taux = portion de l'AUM dans la tranche x taux, par palier d'imposition si plusieurs tranches Taux se suivent. Palier = montant fixe EXCLUSIF de la tranche atteinte (ne se cumule PAS avec les autres — ex. barème de Valorisation CIC par tranche d'actif). Le résultat est plafonné par le bas par le \"Plancher annuel\" ET par le haut par le \"Plafond annuel\". Le barème Forfait/Taux/Palier n'est utilisé que si \"Mode de calcul\" = \"Barème\" (colonne dédiée du tableau)."
+    },
+    {
+     "k": "Mode de calcul",
+     "v": "Par défaut \"Barème (Forfait/Taux/Palier)\" : utilise le barème de la ligne. Pour un fonds où un poste varie par classe de parts (ex. Openstone) : \"Résiduel vs Gestion\" = Cible Gestion+Conseil de la classe sélectionnée (01_Input §3B) x AUM − Commission de Gestion (sans son plancher) ; \"Taux Classe sélectionnée\" = Taux (ex. de Distribution) de la classe sélectionnée x AUM. Optionnel : ignorez si votre fonds n'a pas ce mécanisme (voir 02_Classes_de_Parts)."
+    },
+    {
+     "k": "Méthode",
+     "v": "Basculez \"Actif\" sur Non plutôt que de supprimer une ligne : 04_Recap s'ajuste automatiquement. Désactivez ou dupliquez une ligne pour représenter un frais propre à une classe de parts spécifique si nécessaire. Les postes à tranches multiples (Commission de Conseil, Délégataire Comptable) se paramètrent en 01_Input §3D plutôt que dans le tableau : les cases Valeur correspondantes y sont verrouillées et suivent automatiquement ces paramètres. Les 2 lignes de Distribution (mode \"Taux Classe sélectionnée\") suivent, de la même façon, 02_Classes_de_Parts."
+    },
+    {
+     "k": "Source",
+     "v": "Prospectus Openstone Infraworld du 03/09/2026 (Article 27) ; grille tarifaire dépositaire BFCM - Fundcraft France du 01/03/2026 ; offre tarifaire valorisation/reporting CIC / SOC Asset Servicing du 25/03/2026 ; lettre de mission / e-mail du Commissaire aux Comptes (Maxime Gallet, Aplitec) du 11/09/2026."
+    }
+   ]
+  },
+  {
+   "title": "02_CLASSES_DE_PARTS",
+   "items": [
+    {
+     "k": "Description",
+     "v": "Chaque classe porte ses propres taux de Commission de Distribution : \"Distributeur Global\" et \"Sous-distributeurs\" sont 2 étages distincts, à 2 bénéficiaires différents, mis à 0% l'un d'eux si votre fonds n'a qu'un seul étage (cas d'Openstone : Sous-distributeurs = 0% partout). La colonne \"Distribuante ?\" est un attribut structurel séparé (capitalisante vs distribuante) — sert notamment à activer le forfait CAC \"par distribution\" (01_Input) selon la classe testée, indépendamment du taux de rétrocession. Dans 01_Input, vous choisissez UNE classe — celle sur laquelle 04_Recap calcule le détail. Un poste en mode \"Taux Classe sélectionnée\" = Taux de cette classe x AUM. Le nombre de lignes renseignées (nom non vide) est aussi repris automatiquement en 01_Input §3C comme \"Nombre de catégories de parts du fonds\"."
+    },
+    {
+     "k": "Méthode",
+     "v": "Calcul \"une classe à la fois\" (pas de mix pondéré multi-classes) : plus simple à lire, à condition de relancer le calcul pour chaque classe qui vous intéresse en changeant la sélection en 01_Input. Reste valable même si le taux \"Distributeur Global\" porte, au Prospectus, sur une assiette combinant plusieurs classes (ex. Parts A+B) TANT QUE ce taux est identique pour toutes les classes concernées — sinon, le résultat dépend de la classe choisie dans le sélecteur, ce qui ne représente plus une répartition réelle multi-classes de l'AUM (limite structurelle de l'onglet, pas un point de saisie). Une ligne avec un nom de classe vide n'apparaît pas dans la liste déroulante du sélecteur (ni dans le décompte du nombre de catégories)."
+    },
+    {
+     "k": "Source",
+     "v": "Grille de frais transmise par Nadim ; Prospectus Openstone Infraworld du 03/09/2026, Article 27 (exemple vivant — à effacer/adapter pour un autre fonds). Structure à 2 étages (Distributeur Global / Sous-distributeurs) ajoutée suite à la revue du Prospectus AirFund Conviction Value Capital du 22/06/2026, Article 9.7. Colonne \"Distribuante ?\" ajoutée suite à la lettre de mission / e-mail du Commissaire aux Comptes (Maxime Gallet, Aplitec) du 11/09/2026."
+    }
+   ]
+  },
+  {
+   "title": "03_DETAIL_DEPOSITAIRE_VALO",
+   "items": [
+    {
+     "k": "Description",
+     "v": "Deux mécanismes rendent ces postes moins lisibles qu'un simple taux : le Dépositaire a un plancher ET un plafond annuels (le taux plein ne s'applique qu'entre les deux) ; la Valorisation dépend de la tranche d'actif atteinte (barème \"Palier\", exclusif), de la fréquence de VL choisie, d'une majoration selon le nombre de catégories de parts, et d'un supplément si le portefeuille dépasse 10 lignes."
+    },
+    {
+     "k": "Méthode",
+     "v": "Les paramètres actifs (taux, plancher, plafond, fréquence VL, majoration...) sont rappelés une seule fois en tête de l'onglet. Le tableau plus bas répète ensuite le calcul complet sur toute l'échelle d'AUM testée en 01_Input (mêmes colonnes que 04_Recap), pour voir à quel niveau d'actif chaque mécanisme prend le relais. Les lignes \"Écart vs 04_Recap\" doivent toujours afficher 0 : elles prouvent que ce détail correspond exactement au calcul de 04_Recap."
+    },
+    {
+     "k": "Source",
+     "v": "Grille tarifaire dépositaire BFCM - Fundcraft France du 01/03/2026 ; offre tarifaire valorisation/reporting CIC / SOC Asset Servicing du 25/03/2026."
+    }
+   ]
+  },
+  {
+   "title": "05_TRESORERIE - FRAIS DE CONSTITUTION",
+   "items": [
+    {
+     "k": "Principe",
+     "v": "Les Frais de Constitution sont actifs par défaut (60.000€, Article 27.1 : MAX(60.000€, 1,25% Actif Net au 1er anniversaire)), amortis mensuellement jusqu'à la fin de l'exercice comptable 1. Indication du CAC : l'amortissement sur 5 exercices n'est pas autorisé — plus de lissage au-delà de l'exercice qui contient le 1er anniversaire du fonds."
+    },
+    {
+     "k": "Ré-amortissement dynamique",
+     "v": "Dès qu'une facture réelle (avec sa Date de facturation) est saisie dans le tableau de suivi, elle est déduite du montant cible de la fenêtre en cours (60.000€ pour l'exercice 1, complément éventuel pour l'exercice de l'anniversaire) ; le solde restant est ré-étalé automatiquement, à parts égales, sur les mois restants de cette fenêtre — recalculé mois par mois à chaque nouvelle facture saisie, jusqu'à absorber tout le solde au dernier mois de la fenêtre. La vue cash reste pilotée séparément par la Date de paiement de chaque facture (décision du 11/09/2026)."
+    }
+   ]
+  }
+ ],
+ "ref_labels": {
+  "seuil_t1": "Seuil tranche 1 → 2 (§3D)",
+  "seuil_t2": "Seuil tranche 2 → 3 (§3D)",
+  "gestion_t1": "Commission de Gestion, tranche 1 (§3D)",
+  "gestion_t2": "Commission de Gestion, tranche 2 (§3D)",
+  "gestion_t3": "Commission de Gestion, tranche 3 (§3D)",
+  "conseil_t1": "Commission de Conseil, tranche 1 (§3D)",
+  "conseil_t2": "Commission de Conseil, tranche 2 (§3D)",
+  "conseil_t3": "Commission de Conseil, tranche 3 (§3D)",
+  "distrib_global_classe": "Taux Distributeur Global de la classe sélectionnée (§3B)",
+  "distrib_sous_classe": "Taux Sous-distributeurs de la classe sélectionnée (§3B)",
+  "cac_distribution": "Nombre de distributions × coût par distribution, si la classe distribue (§3)",
+  "valo_p1": "Palier CIC 0–40 M€ selon la fréquence de VL, majoration comprise (§3C)",
+  "valo_p2": "Palier CIC 40–80 M€ (§3C)",
+  "valo_p3": "Palier CIC 80–120 M€ (§3C)",
+  "valo_p4": "Palier CIC > 120 M€ (§3C)",
+  "valo_supplement": "Supplément de 500 € par tranche de 10 lignes au-delà de 10 (§3C)",
+  "tenue_passif_variable": "Coût marginal par investisseur × nombre d’investisseurs (§3)",
+  "constitution_montant": "MAX(plancher ; taux × Actif Net au 1er anniversaire) (§3)",
+  "constitution_plancher": "Plancher des Frais de Constitution (§3)"
+ },
+ "sensitivities": [
+  {
+   "id": "gestion-1bp",
+   "label": "± 1 bp sur la Commission de Gestion (3 tranches)",
+   "ops": [
+    {
+     "path": "baremes.gestion.0",
+     "delta": 0.0001
+    },
+    {
+     "path": "baremes.gestion.1",
+     "delta": 0.0001
+    },
+    {
+     "path": "baremes.gestion.2",
+     "delta": 0.0001
+    }
+   ]
+  },
+  {
+   "id": "conseil-5bp",
+   "label": "± 5 bp sur la Commission de Conseil (3 tranches)",
+   "ops": [
+    {
+     "path": "baremes.conseil.0",
+     "delta": 0.0005
+    },
+    {
+     "path": "baremes.conseil.1",
+     "delta": 0.0005
+    },
+    {
+     "path": "baremes.conseil.2",
+     "delta": 0.0005
+    }
+   ]
+  },
+  {
+   "id": "depo-5k",
+   "label": "± 5 000 € sur le plancher du Dépositaire",
+   "ops": [
+    {
+     "path": "lines.4.plancher",
+     "delta": 5000
+    }
+   ]
+  },
+  {
+   "id": "cac-1k",
+   "label": "± 1 000 € sur le Commissaire aux Comptes",
+   "ops": [
+    {
+     "path": "lines.5.tranches.0.valeur",
+     "delta": 1000
+    }
+   ]
+  },
+  {
+   "id": "inv-20",
+   "label": "± 20 investisseurs au registre",
+   "ops": [
+    {
+     "path": "params.nb_investisseurs",
+     "delta": 20
+    }
+   ]
+  }
+ ]
+}
